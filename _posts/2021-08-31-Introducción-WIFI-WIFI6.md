@@ -19,26 +19,34 @@ tags:
 
 # Introducción WI-FI, Wi-Fi-6
 ## ¿Qúe es el Wi-Fi y cómo hemos llegado a la situación actual?
-```
-Es una tecnología que permite la interconexión inalámbrica de dispositivos electrónicos. 
+
+* Es una tecnología que permite la interconexión inalámbrica de dispositivos electrónicos. 
 Los dispositivos habilitados con wifi tales como:
 (ordenadores personales, teléfonos, televisores, videoconsolas, reproductores de música, etcétera) pueden conectarse 
 entre sí o a Internet a través de un punto de acceso de red inalámbrica.
-```
+
 * Tecnología inalámbrica de red local (WLAN), para banda no licenciada (ISM)
+
 * Nace en 1997, pero su uso real inicia en 1999.
 * Se basa en contienda (CSMA/CA)
+
 ```
 (CSMA/CA):
 La comunicación sólo se produce cuando un usuario puede transmitir la información sin interferencias.
 ```
+
 * Propone, originalmente, 2 formas de conexión de los usuarios.
+
+
 ## ¿Qué le pasa al Wi-Fi? 
+
 * Cualquiera lo puede usar.
 * No nació pensando en entornos empresariales, industriales o masivos.
 * La comunicación la controla el dispositivo cliente.
 * IoT, 8K o VR no existían en 2014.
-# Otros conceptos básicos
+
+
+## Otros conceptos básicos
 * Beacon Frames: Los puntos de acceso mandan constantemente anuncios de la red, para que los clientes móviles puedan detectar su presencia y conectarse a la red wireless. Estos "anuncios" son conocidos como Beacon Frames,. Si esnifamos las tramas de una wireless podremos ver que normalmente el AP manda el ESSID, de la red en los Beacon Frames, aunque esto se puede deshabilitar por software en la mayoria de los AP que se comercializan actualmente.
 * ACL: Significa Access Control List y es el método mediante el cual sólo se permite unirse a la red a aquellas direcciones MAC que estén dadas de alta en una lista de direcciones permitidas.
 * CNAC: Significa Closed Network Access Control. Impide que los dispositivos que quieran unirse a la red lo hagan si no conocen previamente el SSID de la misma.
