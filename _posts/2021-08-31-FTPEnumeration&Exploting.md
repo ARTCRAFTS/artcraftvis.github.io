@@ -1,3 +1,18 @@
+---
+layout: single
+title: FTPEnumeration & Exploiting
+excerpt: "File Transfer Protocol (FTP) is, as the name suggests , a protocol used to allow remote transfer of files over a network. It uses a client-server model to do this, and- as we'll come on to later- relays commands and data in a very efficient way."
+date: 2021-08-31
+classes: wide
+categories:
+  - Red Team
+  - infosec
+tags:
+  - Red Team
+
+---
+
+
 # What is FTP?
 
 - File Transfer Protocol (FTP) is, as the name suggests , a protocol used to allow remote transfer of files over a network. It uses a client-server model to do this, and- as we'll come on to later- relays commands and data in a very efficient way.
