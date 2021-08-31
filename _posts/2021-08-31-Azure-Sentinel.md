@@ -352,8 +352,8 @@ User account created and then deleted within 10 minutes across last 14 days.
   deletionTime, DeleteEventID, AccountUsedToDelete
   | extend timestamp = creationTime, HostCustomEntity = Computer, AccountCustomEntity = UserPrincipalName
   ```
-  ## Enumeration_users_groups
-  Finds attempts to list users or groups using the built-in Windows 'net' tool.
+ ## Enumeration_users_groups
+ Finds attempts to list users or groups using the built-in Windows 'net' tool.
   ```
   let timeframe = 1d;
   let ProcessCreationEvents=() {
