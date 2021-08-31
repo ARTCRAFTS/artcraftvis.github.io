@@ -103,7 +103,8 @@ La comunicación sólo se produce cuando un usuario puede transmitir la informac
 ## GNSS
 * https://es.wikipedia.org/wiki/Sistema_global_de_navegaci%C3%B3n_por_sat%C3%A9lite
 
-# Radio definida por software
+## Radio definida por software
+
 - https://es.wikipedia.org/wiki/Radio_definida_por_software
 - https://en.wikipedia.org/wiki/List_of_software-defined_radios
 ## ¿Que es un SDR?
