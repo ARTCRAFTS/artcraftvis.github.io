@@ -1458,6 +1458,11 @@ S-1-5-32-579 | Builtin\Operadores de asistencia de control de acceso | Un grupo 
 S-1-5-32-580 | Builtin\Usuarios de administración remota | Un grupo local integrado. Los miembros de este grupo pueden acceder a recursos de WMI mediante protocolos de administración (como WS-Management a través del servicio de administración remota de Windows). Esto solo se aplica a espacios de nombre WMI que conceden acceso al usuario |
 
 
+
+# Windows Security Logon Type
+
+![image](https://user-images.githubusercontent.com/89842187/131547781-a3c8c97f-be81-4ac5-aace-07bc9863b00c.png)
+
 # Threat Hunting: Event's ID: windows system
 
 | Event ID        | Description           | Impact  |
