@@ -4,7 +4,7 @@ title: Azure Sentinel
 date: 2021-08-31
 classes: wide
 header:
-  teaser: /assets/images/security.png
+  teaser: /assets/images/security.jpg
 categories:
   - slae
   - infosec
