@@ -12,6 +12,16 @@ tags:
 
 ---
 
+## Searchsploit tricks
+
+```
+searchsploit <service version> #Example
+searchsploit apache mod_ssl #Other example
+searchsploit -m 7618 #Paste the exploit in current directory
+searchsploit -p 7618[.c] #Show complete path
+searchsploit -x 7618[.c] #Open vi to inspect the exploit
+searchsploit --nmap file.xml #Search vulns inside an nmap xml result
+```
 
 # What is FTP?
 
