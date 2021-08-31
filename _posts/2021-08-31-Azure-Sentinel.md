@@ -354,6 +354,7 @@ User account created and then deleted within 10 minutes across last 14 days.
   ```
 ## Enumeration_users_groups
    Finds attempts to list users or groups using the built-in Windows 'net' tool.
+   
   ```
   let timeframe = 1d;
   let ProcessCreationEvents=() {
