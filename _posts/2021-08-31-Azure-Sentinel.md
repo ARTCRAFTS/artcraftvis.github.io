@@ -687,7 +687,7 @@ let timeframe = 14d;
   ```
   
 ## DisabledAccountSigninAttempts
-    Failed attempts to sign in to disabled accounts summarized by account name.
+   Failed attempts to sign in to disabled accounts summarized by account name.
 
 ```
   let timeRange = 14d;
@@ -702,10 +702,10 @@ let timeframe = 14d;
 ```
 
 ## Inactive_Accounts
-    Query for accounts seen signing in for the first time - these could be associated
-    with stale/inactive accounts that ought to have been deleted but weren't - and have 
-    subseuqently been compromised. 
-    Results for user accounts created in the last 7 days are filtered out.
+   Query for accounts seen signing in for the first time - these could be associated
+   with stale/inactive accounts that ought to have been deleted but weren't - and have 
+   subseuqently been compromised. 
+   Results for user accounts created in the last 7 days are filtered out.
 
 ```
 //Inactive accounts that sign in - first-time logins for accounts created in last 7 days are filtered out
@@ -735,8 +735,9 @@ let timeframe = 14d;
   ) on $left.UserPrincipalName == $right.NewUserPrincipalName 
   | extend timestamp = StartTimeUtc, AccountCustomEntity = UserPrincipalName
   ````
-  ## MFA_Login_Attempt_Blocked_USER
-An account could be blocked if there are too many failed authentication attempts in a row. This hunting query identifies if a MFA user account that is set to blocked tries to login to Azure AD.
+  
+## MFA_Login_Attempt_Blocked_USER
+   An account could be blocked if there are too many failed authentication attempts in a row. This hunting query identifies if a MFA user account that is set to blocked tries to    login to Azure AD.
 
 ```
  let timeRange = 1d;
@@ -772,9 +773,10 @@ An account could be blocked if there are too many failed authentication attempts
   | summarize StartTime = min(TimeGenerated), EndTime = max(TimeGenerated) by UserPrincipalName, UserId, UserDisplayName, Status,  IPAddress, IPAddressCount, AppDisplayName, Browser, OS, FullLocation
   | extend timestamp = StartTime, AccountCustomEntity = UserPrincipalName, IPCustomEntity = IPAddress
 ```
+
 ## SuccessThenFail_SameUserDiffApp
-This identifies when a user account successfully logs onto a given App and within 1 minute fails to logon to a different App.
-This may indicate a malicious attempt at accessing disallowed Apps for discovery or potential lateral movement.
+  This identifies when a user account successfully logs onto a given App and within 1 minute fails to logon to a different App.
+  This may indicate a malicious attempt at accessing disallowed Apps for discovery or potential lateral movement.
 
 ```
 let timeFrame = ago(1d);
@@ -811,8 +813,9 @@ let timeFrame = ago(1d);
   | project UserPrincipalName, SuccessLogonTime, IPAddress, SuccessAppDisplayName, FailedLogonTime, FailedAppDisplayName, ResultType, ResultDescription 
   | extend timestamp = SuccessLogonTime, AccountCustomEntity = UserPrincipalName, IPCustomEntity = IPAddress
 ```
+
 ## Failed_attempt_azurePortal
-Access attempts to Azure Portal from an unauthorized user.  Either invalid password or the user account does not exist.
+  Access attempts to Azure Portal from an unauthorized user.  Either invalid password or the user account does not exist.
 
 ```
 let timeRange=ago(7d);
@@ -831,7 +834,8 @@ let timeRange=ago(7d);
   | extend timestamp = StartTimeUtc, AccountCustomEntity = UserPrincipalName
   | sort by AttemptCount
   ```
-  ## New_locations_azure_signin
+  
+## New_locations_azure_signin
   New Azure Active Directory signin locations today versus historical Azure Active Directory signin data
   In the case of password spraying or brute force attacks one might see authentication attempts for many 
   accounts from a new location.
@@ -859,7 +863,8 @@ let timeRange=ago(7d);
   | where distinctAccountCount > countThreshold
   | extend timestamp = StartTimeUtc
   ```
-  ## SigninBurstFromMultipleLocations
+  
+## SigninBurstFromMultipleLocations
   This query over Azure Active Directory sign-in activity highlights accounts associated
   with multiple authentications from different geographical locations in a short space of time.
   
@@ -900,7 +905,8 @@ let timeRange=ago(7d);
   | extend timestamp = Start, AccountCustomEntity = UserPrincipalName 
   | order by Identity
   ```
-  ## Log_Events_ID
+  
+## Log_Events_ID
   
   ```
   1100	The event logging service has shut down.
