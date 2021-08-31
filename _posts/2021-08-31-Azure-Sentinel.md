@@ -6,71 +6,14 @@ classes: wide
 header:
   teaser: /assets/images/security.jpg
 categories:
-  - slae
+  - Blue Team
   - infosec
 tags:
-  - slae
-  - assembly
-  - tcp bind shellcode
+  - Blue Team
+
 ---
-A bind shellcode listens on a socket, waiting for a connection to be made to the server then executes arbitrary code, typically spawning shell for the connecting user. This post demonstrates a simple TCP bind shellcode that executes a shell.
 
-The shellcode does the following:
-1. Creates a socket
-2. Binds the socket to an IP address and port
-3. Listens for incoming connections
-4. Redirects STDIN, STDOUT and STDERR to the socket once a connection is made
-5. Executes a shell
 
-- # Azure
-- ## Introducción
-  * [Search](#Search)
-  * [Where](#Where)
-  * [The_Equality_and_relational_Operators](#The_Equality_and_relational_Operators)
-  * [Take](#Take)
-  * [Count](#Count)
-  * [Summarize](#Summarize)
-  * [Project](#Project)
-  * [Distinct](#Distinct)
-  * [Print](#Print)
-  * [Union](#Union)
- - # Threat Hunting
-- ## SecurityEvent
-   * [ADAccountsLockouts](#ADAccountsLockouts)
-   * [PowerShell_Download](#PowerShell_Download)
-   * [New_sharepoint_downloads_by_IP](#new_sharepoint_downloads_by_IP)
-   * [Failed_logons](#Failed_logons)
-   * [Hosts_with_new_logons](#Hosts_with_new_logons)
-   * [Process_entropy](#Process_entropy)
-   * [Logons_by_type](#Logons_by_type)
-   * [User_created_deleted](#User_created_deleted)
-   * [Enumeration_users_groups](#Enumeration_users_groups)
-   * [New_processes_24h](#New_processes_24h)
-   * [Persistence_create_account](#persistence_create_account)
-- ## SecurityAlert
-   * [Alerts_for_IP](#Alerts_for_IP)
-   * [Alerts_for_USER](#Alerts_for_USER)
-   * [Alerts_for_Host](#Alerts_for_Host)
-- ## OfficeActivity
-   * [Office_Mail_Forwarding](#Office_Mail_Forwarding)
-   * [Teams_Files_uploaded](#Teams_Files_uploaded)
-   * [Double_file_ext_exes](#Double_file_ext_exes)
-   * [New_Admin_account](#New_Admin_account)
-   * [New_sharepoint_downloads_by_IP](#New_sharepoint_downloads_by_IP)
-   * [New_sharepoint_downloads_USERAGENT](#New_sharepoint_downloads_USERAGENT)
-   * [Sharepoint_downloads](#Sharepoint_downloads)
-- ## SigninLogs
-   * [DisabledAccountSigninAttempts](#DisabledAccountSigninAttempts)
-   * [Inactive_Accounts](#Inactive_Account)
-   * [MFA_Login_Attempt_Blocked_USER](#MFA_Login_Attempt_Blocked_USER)
-   * [SuccessThenFail_SameUserDiffApp](#SuccessThenFail_SameUserDiffApp)
-   * [Failed_attempt_azurePortal](#Failed_attempt_azurePortal)
-   * [New_locations_azure_signin](#New_locations_azure_signin)
-   * [SigninBurstFromMultipleLocations](#signinBurstFromMultipleLocations)
-- ## Windows
-   * [Log_Events_ID](#Log_Events_ID)
-   * [SIDS](#SIDS)
-   
    
 ## Search
 ```
@@ -170,7 +113,6 @@ SophosXG_CL
 | project url_s
          , AlertName
 ```
-- # SecurityEvent
 ## ADAccountsLockouts
 Detects Active Directory account lockouts.
 ```
@@ -204,7 +146,7 @@ let timeframe = 1d;
   | project TimeGenerated, ComputerName, AccountName, InitiatingProcessFileName, FileName, ProcessCommandLine
   | top 100 by TimeGenerated
   | extend timestamp = TimeGenerated, HostCustomEntity = ComputerName, AccountCustomEntity = AccountName
-```
+  ```
 ## New_sharepoint_downloads_by_IP
 Shows volume of documents uploaded to or downloaded from Sharepoint by new IP addresses. In stable environments such connections by new IPs may be unauthorized, especially if associated with spikes in volume which could be associated with large-scale document exfiltration.'
 ```
@@ -256,7 +198,8 @@ let starttime = 14d;
   Shows new accounts that have logged onto a host for the first time - this may clearly be benign activity but an account 
   logging onto multiple hosts for the first time can also be used to look for evidence of that account being used to move 
   laterally across a network.
-  ```
+  
+```
   let starttime = 7d;
   let endtime = 1d;
   let LogonEvents=() { 
@@ -281,7 +224,7 @@ let starttime = 14d;
   ) on ComputerName, AccountName 
   | summarize StartTimeUtc = min(StartTimeUtc), EndTimeUtc = max(EndTimeUtc), HostCount=dcount(ComputerName), HostSet=makeset(ComputerName, 10)  by AccountName, ComputerName
   | extend timestamp = StartTimeUtc, AccountCustomEntity = AccountName
-  ```
+```
   ## Process_entropy
 Entropy calculation used to help identify Hosts where they have a high variety of processes(a high entropy process list on a given Host over time).
 This helps us identify rare processes on a given Host. Rare here means a process shows up on the Host relatively few times in the the last 7days.
