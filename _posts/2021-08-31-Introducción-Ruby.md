@@ -97,9 +97,9 @@ end
 print_plays(1600, 1605)
 ```
 ## Hash
-* A hash is like an array, only every one of its elements has a name.
-* Keep in mind that hashes won’t keep things in order. That’s not their job. It’ll just pair up two things: a key and a value.
-* You can also try this with .values instead of .keys.
+A hash is like an array, only every one of its elements has a name.
+Keep in mind that hashes won’t keep things in order. That’s not their job. It’ll just pair up two things: a key and a value.
+You can also try this with .values instead of .keys.
 ```
 Hash.new
 books.keys
@@ -111,7 +111,9 @@ hashes_example.values
 hashes_example.lenght
 hashes_example['validez']='2 años' #introducir un dato más
 ```
+
 ## Blocks
+
 ```
 5.times { print "Odelay! " }
 
@@ -119,7 +121,9 @@ hashes_example['validez']='2 años' #introducir un dato más
   puts time
 }
 ```
+
 ## Condicionales
+
 ```
 #!/usr/bin/ruby
 if 1 < 2
@@ -158,7 +162,9 @@ else
 end
 ```
 ![image](https://user-images.githubusercontent.com/64669644/89028988-b0b71900-d32d-11ea-800f-bae789c6fce6.png)
+
 ## Loops
+
 ```
 #!/usr/bin/ruby
 
@@ -179,7 +185,9 @@ for nota3 in 5..10
         puts "la nota #{nota} significa que estas aprobado!!!!"
 end
 ```
+
 ## Directories_Files
+
 ```
 Dir.pwd 
 Dir.mkdir
@@ -212,7 +220,9 @@ File.open("example.TXT", "r") do  |file|
 |      file.puts "jeje"
 end 
 ```
+
 ## Sockets
+
 ```
 requiere 'socket'
 
@@ -220,12 +230,16 @@ socket=TCPSocket.open("<ip>",5555)
 socket.addr
 socket.peeraddr
 ```
+
 ## ListarIP's
+
 ```
 #!/usr/bin/ruby
 (ARGV[1]..ARGV[2]).each {|ip| print ARGV[0], ".", ip,"\n"}
 ```
+
 ## Expresiones y extraer información.
+
 ```
 "Ruby parece mas interesante que python jeje xD"
 =~/\d/ #numero de caracteres
@@ -247,7 +261,9 @@ resultado=texto.scan(creacion_ip)
 
 (?:\d{1,3}\.){3}.(\d{1,3})
 ```
+
 ## Servidor
+
 ```
 #!/usr/share/ruby
 
@@ -279,7 +295,9 @@ end
 
 
 ```
+
 ## Cliente
+
 ```
 #!/usr/bin/ruby
 
