@@ -1,9 +1,9 @@
-
+--
 
 title: Introducción Ruby
 excerpt: "Ruby es un lenguaje de programación interpretado, reflexivo y orientado a objetos, creado por el programador japonés Yukihiro "Matz" Matsumoto, quien comenzó a trabajar en Ruby en 1993, y lo presentó públicamente en 1995"
 
-
+--
 
 ## Start
 ```
