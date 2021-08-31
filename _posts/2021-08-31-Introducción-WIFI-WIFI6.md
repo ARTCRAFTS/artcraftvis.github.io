@@ -4,7 +4,7 @@ title: Introducción WIFI/WIFI6
 date: 2021-08-31
 classes: wide
 header:
-  teaser: /assets/images/wifi1.jpg
+  teaser: /assets/images/wifipng.png
   teaser_home_page: true
 categories:
   - infosec
@@ -12,7 +12,7 @@ tags:
   - WIFI
 ---
 
-![](/assets/images/wifi1.jpg)
+![](/assets/images/wifipng.png)
 
 
 # Introducción WI-FI, Wi-Fi-6
