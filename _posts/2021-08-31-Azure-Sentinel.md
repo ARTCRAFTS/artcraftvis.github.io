@@ -169,8 +169,7 @@ let starttime = 14d;
   | extend timestamp = StartTimeUtc, IPCustomEntity = ClientIP
   ```
 ## Failed_logons
-  
-  A summary of failed logons can be used to infer lateral movement with the intention of discovering credentials and sensitive data.
+A summary of failed logons can be used to infer lateral movement with the intention of discovering credentials and sensitive data.
   ```
   let timeframe = 1d;
   SecurityEvent
