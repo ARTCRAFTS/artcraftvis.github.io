@@ -10,10 +10,9 @@ categories:
 tags:
   - WIFI
 
-![](/assets/images/signal.jpg)
-
 ---
 
+![](/assets/images/signal.jpg)
 
 
 # Introducción WI-FI, Wi-Fi-6
