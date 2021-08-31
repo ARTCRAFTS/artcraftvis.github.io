@@ -403,7 +403,7 @@ User account created and then deleted within 10 minutes across last 14 days.
   | extend timestamp = StartTimeUtc
   ```
   
-  ## Persistence_create_account
+## Persistence_create_account
   Summarizes uses of uncommon & undocumented commandline switches to create persistence
   User accounts may be created to achieve persistence on a machine.
   Read more here: https://attack.mitre.org/wiki/Technique/T1136
