@@ -1399,6 +1399,7 @@ S-1-5-80 | Servicio NT	| Un prefijo de cuenta de servicio de NT |
 
 ## SID agregados por Windows Server 2003 y versiones posteriores
 Cuando se agrega a un dominio un controlador de dominio que se ejecute en Windows Server 2003 o en una versión posterior, Active Directory agrega las entidades de seguridad de la tabla siguiente.
+
 | SID | Nombre | Descripción |
 | --- | ------ | ----------- |
 S-1-3-2 | Creator Owner Server | Este SID no se utiliza en Windows 2000 |
@@ -1417,6 +1418,7 @@ S-1-5-32-562 | Builtin\Usuarios COM distribuidos | Un alias. grupo para COM que 
 
 ## SID_agregados_por_Windows_Server_2008_y_versiones_posteriores
 Cuando se agrega a un dominio un controlador de dominio que se ejecute en Windows Server 2008 o una versión posterior, Active Directory agrega las entidades de seguridad de la tabla siguiente.
+
 | SID | Nombre | Descripción |
 | --- | ------ | ----------- |
 S-1-2-1	| Inicio de sesión en la consola	| Grupo que incluye los usuarios que han iniciado sesión en la consola física |
@@ -1442,8 +1444,10 @@ S-1-16-20480 | Nivel obligatorio de proceso protegido | Nivel de integridad de p
 S-1-16-28672 | Nivel obligatorio de proceso seguro	| nivel de integridad de proceso seguro |
 ## SID agregados por Windows Server 2012 y versiones posteriores
 Cuando se agrega a un dominio un controlador de dominio que se ejecute en Windows Server 2012 o en una versión posterior, Active Directory agrega las entidades de seguridad de la tabla siguiente.
+
 | SID | Nombre | Descripción |
 | --- | ------ | ----------- |
+
 S-1-5-21-dominio-522 | Controladores de dominio clonables	| 	Un grupo global. Los miembros de este grupo que son controladores de dominio pueden clonarse |
 S-1-5-32-575 | Builtin\Servidores de acceso remoto RDS	| Un grupo local integrado. Los servidores en este grupo habilitan a los usuarios de programas RemoteApp y acceso a escritorios virtuales personales a estos recursos. En implementaciones con conexión a Internet, estos servidores suelen implementarse en una red perimetral. Este grupo debe estar constituido en servidores que ejecutan Agentes de conexión a Escritorio remoto. Los servidores de puertas de enlace de Escritorio remoto y los servidores de acceso web de Escritorio remoto utilizados en la implementación deben encontrarse en este grupo | 
 S-1-5-32-576 | Builtin\Servidores de punto de conexión RDS | 	Un grupo local integrado. Los servidores en este grupo ejecutan máquinas virtuales y hospedan sesiones donde se ejecutan los programas RemoteApp de los usuarios y los escritorios virtuales personales. Este grupo debe estar constituido en servidores que ejecutan Agentes de conexión a Escritorio remoto. Los servidores de host de sesión de Escritorio Remoto y los servidores de host de virtualización de Escritorio Remoto utilizados en la implementación deben encontrarse en este grupo | 
