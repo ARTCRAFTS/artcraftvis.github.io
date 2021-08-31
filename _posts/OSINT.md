@@ -1,0 +1,137 @@
+---
+layout: single
+title: OSINT
+excerpt: "
+OSINT (Open Source INTelligence), traducido como Inteligencia de Fuentes Abiertas, hace referencia al conjunto de técnicas y herramientas para recopilar información pública, analizar los datos y correlacionarlos convirtiéndolos en conocimiento útil."
+date: 2021-08-31
+classes: wide
+header:
+  teaser: /assets/images/security.jpg
+categories:
+  - Blue Team
+  - infosec
+tags:
+  - Blue Team
+
+---
+
+
+
+ 
+### FingerPrinting
+```
+Wappaalyzer #https://www.wappalyzer.com/download
+BuildWith #https://builtwith.com/
+WhatWeb
+```
+### OSINT-Passive
+```
+What do I know?
+What does this mean?
+What do I need to know?
+How do I find out?
+```
+### Google-Fu
+```
+star wars "yoda" #everything about star wars and yoda.
+star wars -yoda #do not show my stuff with yoda.
+intitle:"matrix" #Limits results to documents that contain the search word in the title.
+cache: #Displays google's cached version
+link: #Show a list of web pages that have links to your target
+related: #Simular web pages
+info: #View information google has on the target
+site: #Limits results to just the domain listed
+allintitle: #Limits results to those websites with all the search words in the title
+allinurl: #Limits results to only those webpages with all search words in the url
+inurl: #Limits results to documents that contains the search word in the url.
+filetype:docx, csv, xlsv, pdf 
+----------------------------------------------------------
+Examples:
+cache:yahoo.com #lastpage
+info:www.hackthissite.org
+"star wars" site:atenea.ccn-cert.cni.es #find me anything that contains star wars in that site.
+intitle:"index of"
+allinurl:admin index
+----------------------------------------------------------
+https://www.exploit-db.com/google-hacking-database
+https://ahrefs.com/blog/es/operadores-de-busqueda-avanzada-de-google/
+```
+### Shodan
+```
+city: find devices in a particular city
+country: find devices in a particular country
+geo: you can pass it coordinates
+hostname: find values that match the hostname
+net: search based on an IP or /x CIDR
+os: search based on operating system
+port: find particular ports that are open
+before/after: find results within a timeframe
+-----------------------------------------
+Fun queries:
+"Server: Prismview Player" #Industrial Control Systems
+mongo port:27017 #mongo databases
+Elasticsearch port:9200
+Vsftpd 2.3.4 #Vulnerable ftp server.
+"authentication disabled" "RFB 003.008" #Unprotected VNC
+title:"Weave Scope" http.favicon.hash:567176827 #Network Infrastructure weave dashboards
+"Set-Cookie: mongo-express=" "200 OK" #Mongo Express Web GUI #WEB GUI
+"X-Jenkins" "Set-Cookie: JSESSIONID" http.title:"Dashboard" #Jenkings CI
+"root@" port:23 -login -password -name -Session #Already Logged-In as root via Telnet 
+"220" "230 Login successful." port:21 #FTP Servers with Anonymous Login 
+https://jarv.is/notes/shodan-search-queries/ #alot of fun queries.
+https://fofa.so/ #Chinese shodan
+mail.mailinator.com
+port:3389 country:es
+```
+### DNS
+| Command-Resource | Description |
+| ---------------- | ----------- |
+| whois <target.com> | whois checkup |
+| dig a <target> @nameserver | DNS-IP-LOOKUP |
+| dig mx <target> @nameserver | MX Record Lookup |
+| dig axfr <target> @nameserver (linux) | Zone-Transfer |
+| nslookup -> set type=any -> ls -d blah.com | Zone-Transfer |
+| https://dnsdumpster.com/ | dns recon & research, find & lookup dns records |
+| https://whois.domaintools.com/ | Domain info |
+   
+### Finding-Subdomains
+```
+nmap --script dns-brute www.foo.com
+Sublist3r #https://github.com/aboul3la/Sublist3r / sublist3r -d yahoo.com
+crt.sh #https://crt.sh/
+https://github.com/OWASP/Amass #amass enum -d example.com
+https://github.com/tomnomnom/httprobe
+https://github.com/tomnomnom/assetfinder
+```
+### Email
+```
+Employees (name, job title, phone number, manager, etc) - Linkedin,infojobs,etc.
+Pictures (badge pictures, desk, computers)
+https://hunter.io/ #emails
+theharvester -d yahoo.com -l 500 -b google #emails
+dehashed.com #email
+https://www.email-format.com/ #emails, domains.
+https://tools.verifyemailaddress.io/ #check if emails exist.
+https://intelx.io #fun one dumps
+```
+Use Simply Email to enumerate all the online places (github, target site etc), it works better if you use proxies or set long throttle times so google doesn’t think you’re a robot and make you fill out a Captcha.
+```
+git clone https://github.com/killswitch-GUI/SimplyEmail.git
+./SimplyEmail.py -all -e TARGET-DOMAIN
+```
+Simply Email can verify the discovered email addresss after gathering.
+### OSINT-Resources
+
+| Resource | Description |
+| -------- | ----------- |
+| https://github.com/jivoi/awesome-osint | A curated list of amazingly awesome open source intelligence tools |
+| https://haveibeenpwned.com/ | Check if you have an account that has been compromised in a data breach |
+| https://www.urlvoid.com/ | This service helps you detect potentially malicious websites. |
+| https://urlscan.io/ | Service to scan and analyse websites. |
+| https://www.ipvoid.com/ | IP blacklist check, whois lookup, dns lookup, ping, and more! |
+| https://www.domaintools.com/ | Turn domain and DNS data into threat intelligence with DomainTools |
+| https://phishingquiz.withgoogle.com/ | Can you spot when you’re being phished? |
+| https://feodotracker.abuse.ch/browse/ | Here you can browse the list of botnet Command&Control servers (C&Cs) tracked by Feodo |
+| https://osintframework.com/ | Alot of stuff |
+| https://archive.org// | WayBackMachine |
+| https://cachedview.com/| The Google Cache Browser for any page on Internet |
