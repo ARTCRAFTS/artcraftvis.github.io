@@ -1,10 +1,10 @@
 ---
 layout: single
-title: TCP bind shellcode
-date: 2018-11-18
+title: Azure Sentinel
+date: 2021-08-31
 classes: wide
 header:
-  teaser: /assets/images/slae32.png
+  teaser: /assets/images/security.png
 categories:
   - slae
   - infosec
