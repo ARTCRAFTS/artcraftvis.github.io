@@ -1,6 +1,16 @@
 ---
-title: Introducción Ruby
-excerpt: "Ruby es un lenguaje de programación interpretado, reflexivo y orientado a objetos, creado por el programador japonés Yukihiro "Matz" Matsumoto, quien comenzó a trabajar en Ruby en 1993, y lo presentó públicamente en 1995"
+layout: single
+title: Introducción a Ruby
+excerpt: "Este es un lenguaje de programación, que está principalmente orientado a objetos pero también puede ser programación funcional, por ejemplo. Este lenguaje de programación open-source se inspiró en lenguajes como Perl, Eiffel y LISP."
+date: 2021-08-31
+classes: wide
+categories:
+  - Blue Team
+  - infosec
+  - Red Team
+tags:
+  - Blue Team
+  - Red Team
 ---
 
 ## Start
