@@ -380,6 +380,7 @@ User account created and then deleted within 10 minutes across last 14 days.
   These new processes could be benign new programs installed on hosts; however, especially in normally stable environments, 
   these new processes could provide an indication of an unauthorized/malicious binary that has been installed and run. 
   Reviewing the wider context of the logon sessions in which these binaries ran can provide a good starting point for identifying     possible attacks.
+  
   ```
   let starttime = 14d;
   let endtime = 1d;
@@ -408,6 +409,7 @@ User account created and then deleted within 10 minutes across last 14 days.
   "net user" commands are noisy, so needs to be joined with another signal 
   e.g. in this example we look for some undocumented variations (e.g. /ad instead of /ad
   d).
+  
   ```
   let timeframe = 1d;
   SecurityEvent
@@ -429,6 +431,7 @@ User account created and then deleted within 10 minutes across last 14 days.
 
  ## Alerts_for_IP
  Any Alerts that fired related to a given IpAddress during the range of +6h and -3d.
+ 
  ```
    let GetAllAlertsWithIp = (suspiciousEventTime:datetime, v_ipAddress:string){
   //-3d and +6h as some alerts fire after accumulation of events
@@ -450,6 +453,7 @@ User account created and then deleted within 10 minutes across last 14 days.
   ```
   ## Alerts_for_USER
   Any Alerts that fired related to a given account during the range of +6h and -3d.
+  
   ```
   let GetAllAlertsForUser = (suspiciousEventTime:datetime, v_User:string){
   //-3d and +6h as some alerts fire after accumulation of events
@@ -471,6 +475,7 @@ User account created and then deleted within 10 minutes across last 14 days.
   ```
   ## Alerts_for_HOST
  Any Alerts that fired on a given host during the range of +6h and -3d.
+ 
   ```
   let GetAllAlertsOnHost = (suspiciousEventTime:datetime, v_Host:string){
   //-3d and +6h as some alerts fire after accumulation of events
@@ -495,6 +500,7 @@ User account created and then deleted within 10 minutes across last 14 days.
   
   ## Office_Mail_Forwarding
 Adversaries often abuse email-forwarding rules to monitor activities of a victim, steal information and further gain intelligence on victim or victim's organization.This query over Office Activity data highlights cases where user mail is being forwarded and shows if it is being forwarded to external domains as well.
+
 ```
 let timeframe = 14d;
   OfficeActivity
@@ -522,6 +528,7 @@ let timeframe = 14d;
   ## Teams_Files_uploaded
   Provides a summary of files uploaded to teams chats and extracts 
   the users and IP addresses that have accessed them.
+  
   ```
   OfficeActivity 
   | where RecordType =~ "SharePointFileOperation" 
@@ -543,6 +550,7 @@ let timeframe = 14d;
   ## Double_file_ext_exes
   Provides a summary of executable files with double file extensions in SharePoint 
   and the users and IP addresses that have accessed them.
+  
   ```
   let timeframe = 14d;
   let known_ext = dynamic(["lnk","log","option","config", "manifest", "partial"]);
@@ -568,6 +576,7 @@ let timeframe = 14d;
   ## New_Admin_account
   This will help you discover any new admin account activity which was seen and were not seen historically. 
   Any new accounts seen in the results can be validated and investigated for any suspicious activities.
+  
   ```
   let starttime = 14d;
   let endtime = 1d;
@@ -597,6 +606,7 @@ let timeframe = 14d;
   Shows volume of documents uploaded to or downloaded from Sharepoint by new IP addresses. 
   In stable environments such connections by new IPs may be unauthorized, especially if associated with 
   spikes in volume which could be associated with large-scale document exfiltration.
+  
   ```
   let starttime = 14d;
   let endtime = 1d;
@@ -620,6 +630,7 @@ let timeframe = 14d;
   ## New_sharepoint_downloads_USERAGENT
   Tracking via user agent is one way to differentiate between types of connecting device. 
   In homogeneous enterprise environments the user agent associated with an attacker device may stand out as unusual.
+  
   ```
   let starttime = 14d;
   let endtime = 1d;
@@ -643,6 +654,7 @@ let timeframe = 14d;
   ```
   ## Sharepoint_downloads
   New user agents associated with a clientIP for sharepoint file uploads/downloads.
+  
   ```
   let starttime = 14d;
   let endtime = 1d;
@@ -667,6 +679,7 @@ let timeframe = 14d;
   
 ## DisabledAccountSigninAttempts
 Failed attempts to sign in to disabled accounts summarized by account name.
+
 ```
   let timeRange = 14d;
   SigninLogs 
@@ -683,6 +696,7 @@ Query for accounts seen signing in for the first time - these could be associate
 with stale/inactive accounts that ought to have been deleted but weren't - and have 
 subseuqently been compromised. 
 Results for user accounts created in the last 7 days are filtered out.
+
 ```
 //Inactive accounts that sign in - first-time logins for accounts created in last 7 days are filtered out
   let starttime = 14d;
@@ -713,6 +727,7 @@ Results for user accounts created in the last 7 days are filtered out.
   ````
   ## MFA_Login_Attempt_Blocked_USER
 An account could be blocked if there are too many failed authentication attempts in a row. This hunting query identifies if a MFA user account that is set to blocked tries to login to Azure AD.
+
 ```
  let timeRange = 1d;
   let lookBack = 7d;
@@ -750,6 +765,7 @@ An account could be blocked if there are too many failed authentication attempts
 ## SuccessThenFail_SameUserDiffApp
 This identifies when a user account successfully logs onto a given App and within 1 minute fails to logon to a different App.
 This may indicate a malicious attempt at accessing disallowed Apps for discovery or potential lateral movement.
+
 ```
 let timeFrame = ago(1d);
   let logonDiff = 1m;
@@ -787,6 +803,7 @@ let timeFrame = ago(1d);
 ```
 ## Failed_attempt_azurePortal
 Access attempts to Azure Portal from an unauthorized user.  Either invalid password or the user account does not exist.
+
 ```
 let timeRange=ago(7d);
   SigninLogs
@@ -808,6 +825,7 @@ let timeRange=ago(7d);
   New Azure Active Directory signin locations today versus historical Azure Active Directory signin data
   In the case of password spraying or brute force attacks one might see authentication attempts for many 
   accounts from a new location.
+  
   ```
   let starttime = 14d;
   let endtime = 1d;
@@ -834,6 +852,7 @@ let timeRange=ago(7d);
   ## SigninBurstFromMultipleLocations
   This query over Azure Active Directory sign-in activity highlights accounts associated
   with multiple authentications from different geographical locations in a short space of time.
+  
   ```
   let timeRange = ago(10d);
   let signIns = SigninLogs
@@ -872,6 +891,7 @@ let timeRange=ago(7d);
   | order by Identity
   ```
   ## Log_Events_ID
+  
   ```
   1100	The event logging service has shut down.
   1101	Audit events have been dropped by the transport.
