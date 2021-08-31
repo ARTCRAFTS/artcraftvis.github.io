@@ -1444,8 +1444,9 @@ S-1-16-16384 | Nivel obligatorio del sistema | Nivel de integridad del sistema |
 S-1-16-20480 | Nivel obligatorio de proceso protegido | Nivel de integridad de proceso protegido | 
 S-1-16-20480 | Nivel obligatorio de proceso protegido | Nivel de integridad de proceso protegido | 
 S-1-16-28672 | Nivel obligatorio de proceso seguro	| nivel de integridad de proceso seguro |
+
 ## SID agregados por Windows Server 2012 y versiones posteriores
-Cuando se agrega a un dominio un controlador de dominio que se ejecute en Windows Server 2012 o en una versión posterior, Active Directory agrega las entidades de seguridad de la tabla siguiente.
+  Cuando se agrega a un dominio un controlador de dominio que se ejecute en Windows Server 2012 o en una versión posterior, Active Directory agrega las entidades de seguridad de   la tabla siguiente.
 
 | SID | Nombre | Descripción |
 | --- | ------ | ----------- |
