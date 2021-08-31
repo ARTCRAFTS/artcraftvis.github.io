@@ -1402,6 +1402,7 @@ Cuando se agrega a un dominio un controlador de dominio que se ejecute en Window
 
 | SID | Nombre | Descripción |
 | --- | ------ | ----------- |
+
 S-1-3-2 | Creator Owner Server | Este SID no se utiliza en Windows 2000 |
 S-1-3-3 | Creator Group Server | Este SID no se utiliza en Windows 2000 |
 S-1-5-8 | Proxy | este SID no se utiliza en Windows 2000 |
@@ -1421,6 +1422,7 @@ Cuando se agrega a un dominio un controlador de dominio que se ejecute en Window
 
 | SID | Nombre | Descripción |
 | --- | ------ | ----------- |
+
 S-1-2-1	| Inicio de sesión en la consola	| Grupo que incluye los usuarios que han iniciado sesión en la consola física |
 S-1-5-21dominio-498 | Controladores de dominio de sólo lectura de empresa | Un grupo universal. Los miembros de este grupo son los controladores de dominio de solo lectura en la empresa | 
 S-1-5-21dominio-521 | Controladores de dominio de sólo lectura | Un grupo global. Los miembros de este grupo son los controladores de dominio de solo lectura en el dominio | 
