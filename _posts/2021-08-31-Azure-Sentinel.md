@@ -198,6 +198,7 @@ A summary of failed logons can be used to infer lateral movement with the intent
 Shows new accounts that have logged onto a host for the first time - this may clearly be benign activity but an account 
 logging onto multiple hosts for the first time can also be used to look for evidence of that account being used to move 
 laterally across a network.
+
 ```
   let starttime = 7d;
   let endtime = 1d;
