@@ -11,21 +11,9 @@ tags:
   - Programming
 
 ---
-- # Introducción a Python.
-     * [Strings](strings)
-     * [Math](#Math)
-     * [Variables](#Variables)
-     * [Functions](#Functions)
-     * [Boolean](#Boolean)
-     * [BoOperators](#BoOperators)
-     * [Conditionals](#Conditionals)
-     * [Lists](#Lists)
-     * [Tuples](#Tuples)
-     * [Looping](#Looping)
-     * [Modules](#Modules)
-     * [Sockets](#Sockets)
-     * [InputOutput](#InputOutput)
+
 ## Strings
+
 ```
 #!/bin/python3
 
@@ -40,7 +28,9 @@ multiple lines!""") #triple comillas para multi-linea
 
 print("This string is "+"awesome!")
 ```
+
 ## Math
+
 ```
 #!/bin/python3
 
@@ -54,7 +44,9 @@ print(50 ** 2) #exponentes
 print(50 % 6) #modulo
 print(50 // 6) #sin restos
 ```
+
 ## Variables
+
 ```
 #!/bin/python3
 #Variables y metodos
@@ -83,7 +75,9 @@ print(age)
 
 print('\n')
 ```
+
 ## Functions
+
 ```
 print("Here is an example function:")
 
@@ -117,7 +111,9 @@ def new_line():
 	print('\n')
 new_line()
 ```
+
 ## Boolean
+
 ```
 #!/bin/python3
 print("Boolean expressions:")
@@ -133,7 +129,9 @@ print(type(bool1))
 bool5= "True"
 print(type(bool5))
 ```
+
 ## BoOperators
+
 ```
 #!/bin/python3
 greater_than = 7 > 5
@@ -155,6 +153,7 @@ print(test_and)
 ```
 
 ## Truth Table
+```
 
 | A            | B             | A and B |
 | ------------ | ------------- | ------- |
@@ -163,7 +162,10 @@ print(test_and)
 | False        | True          | False   | 
 | False        | False         | False   |
 
+```
+
 ## Conditionals
+
 ```
 #!/bin/python3
 def drink(money):
@@ -188,7 +190,9 @@ print(alcohol(21,5))
 print(alcohol(21,4))
 print(alcohol(20,4))A
 ```
+
 ## Lists
+
 ```
 #!/bin/python3
 movies = ["Matrix", "Avatar", "The Hangover", "Harry Potter"]
@@ -210,14 +214,18 @@ movie.insert
 movies.pop(0)
 print(movies)
 ```
+
 ## Tuples
+
 ```
 #!/bin/python3 
 #cannot be change.
 grades = ("a", "b", "c", "d", "f",)
 print(grades[1])
 ```
+
 ## Looping
+
 ```
 #!/bin/python3 
 #For loops - start to finish of an iterate
@@ -233,8 +241,11 @@ while i < 10:
 	print(i)
 	i += 1
 ```
+
 ## Modules
+
 ```
+
 #!/bin/python3
 import sys #system functions and parameters
 from datetime import datetime as dt #import with alias
@@ -299,7 +310,9 @@ PORT = 10101
 s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)  #INET = IPV4  SOCK_STREAM = PORT
 s.connect((HOST,PORT)) #just make a connection quick, but we can tell to send data etc.
 ```
+
 ## InputOutput
+
 ```
 name=raw_input("What is your name?")
 print "Hello, "+ name
