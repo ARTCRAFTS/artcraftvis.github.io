@@ -98,3 +98,38 @@ IDLESCAN #TCP Spoof "source address", Requieres a zombie / SYN + ACK > RST /IPID
 ```
 --reason
 ```
+
+### Firewall Detection (ACK Probing)
+
+Firewall Detection (ACK Probing)
+
+```
+root@kali:/home/slowkep# nmap -sA 192.168.21.129 --reason
+Starting Nmap 7.80 ( https://nmap.org ) at 2020-06-12 02:46 CEST
+Nmap scan report for 192.168.21.129
+Host is up, received arp-response (0.00016s latency).
+All 1000 scanned ports on 192.168.21.129 are unfiltered because of 1000 resets 
+
+```
+
+![image](https://user-images.githubusercontent.com/89842187/131547991-bf84797e-241a-4d8f-ad23-2ad3b77d83c8.png)
+
+Firewall Activado (NO RST)
+
+```
+root@kali:/home/slowkep# nmap -sA 192.168.21.129 --reason
+Starting Nmap 7.80 ( https://nmap.org ) at 2020-06-12 02:48 CEST
+Stats: 0:00:18 elapsed; 0 hosts completed (1 up), 1 undergoing ACK Scan
+ACK Scan Timing: About 87.90% done; ETC: 02:49 (0:00:02 remaining)
+Nmap scan report for 192.168.21.129
+Host is up, received arp-response (0.00032s latency).
+All 1000 scanned ports on 192.168.21.129 are filtered because of 1000 no-responses
+
+
+Nmap done: 1 IP address (1 host up) scanned in 21.41 seconds
+```
+![image](https://user-images.githubusercontent.com/89842187/131548095-64f8132a-d64b-460c-a857-b2fde43299c6.png)
+
+
+
+![image](https://user-images.githubusercontent.com/89842187/131548182-1fd1621f-570e-4f3f-a004-01f7061313ed.png)
