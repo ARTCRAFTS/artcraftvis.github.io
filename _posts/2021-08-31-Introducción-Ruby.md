@@ -11,7 +11,7 @@ categories:
 tags:
   - Blue Team
   - Red Team
-
+---
 
 
 # Introducción a Ruby
