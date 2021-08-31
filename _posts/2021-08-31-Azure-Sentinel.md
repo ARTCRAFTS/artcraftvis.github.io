@@ -1456,3 +1456,41 @@ S-1-5-32-577 | Builtin\Servidores de administración RDS | Un grupo local integr
 S-1-5-32-578 | Builtin\Administradores de Hyper-V | Un grupo local integrado. Los miembros de este grupo tienen acceso total e ilimitado a todas las características de Hyper-V |
 S-1-5-32-579 | Builtin\Operadores de asistencia de control de acceso | Un grupo local integrado. Los miembros de este grupo pueden consultar de forma remota atributos y permisos de autorización para recursos en este equipo |
 S-1-5-32-580 | Builtin\Usuarios de administración remota | Un grupo local integrado. Los miembros de este grupo pueden acceder a recursos de WMI mediante protocolos de administración (como WS-Management a través del servicio de administración remota de Windows). Esto solo se aplica a espacios de nombre WMI que conceden acceso al usuario |
+
+
+# Threat Hunting: Event's ID: windows system
+
+| Event ID        | Description           | Impact  |
+| ------------- |:-------------:| -----:|
+| 1102/517      | Event log cleared | Attackers may clear windows event logs |
+| 4710/4611 - 4614/4622     |  Local Security Authority modification     | Attackers may modify LSA for escalation/persistence |
+| 4648      | Explicit credentials logon | Typically when a logged on user provides different credentials to access a resource. Requires filtering of "normal" |
+| 4661      | A handle to an object was requested | SAM/DSA Access Requires filtering of "normal" | |
+| 4672      | Special privileges assignet to new logon | Monitor when someone with admin rights logs on. Is this an account that should have admin rights or a normal user?  |
+| 4723     | Account password change attempt  | If it's not approved/known pw change, you should know |
+| 4964     | Custom Special group logon tracking  | Track Admin & "users of interest logons" |
+| 7045/4697     | New service was installed | Attackers often install a new service for persistence |
+| 4698 & 4702    | Scheduled task creation/modification | Attackers often create/modify scheduled task for pessistence - Pull all events in Microsoft-Windows-TaskSheduler/operational  |
+| 4735/639 | System audit policy was changed |  Attackers my modify the system's audit policy |
+| 4732    | A member was added to a security-enabled local group  | Attackers may create a new local account & add it to the local administrators group |
+| 4720    | A local user account was created | Attackers may create a new local account for persistence |
+
+# Threat Hunting: Event's ID: Domain Controller
+
+| Event ID        | Description           | Impact  |
+| ------------- |:-------------:| -----:|
+| 4768      | Kerberos auth ticket (TGT) was requested | Track user kerb auth, with client/workstation name |
+| 4769     | A Kerberos service ticket was requested      | Track user resource access request & Kerberoasting |
+| 4964      | Custom Special Group logon tracking | Track admin & "users of interest" logons |
+| 4625/4771      | Logon Failure | Interesting logon failures 4771 with 0x18 = bad passwd|
+| 4765/4766      | SID History added to an account/attempt failed | If you aren't actively migrating accounts between domains, this could be malicious |
+| 4794     | DSRM Account passwd change attempt | if this isn't expected could be malicious |
+| 4780     | ACLs set on domain accounts | if this isn't expected could be malicious |
+| 4739/643     | Domain Policy was changed | if this isn't expected could be malicious |
+| 4724/628     | Attempt to reset an account's password | monitor for admin & sensitive account passwd reset |
+| 4735/639     | Security-enabled local group changed | Monitor admin/sensitive group membership changes |
+| 4737/641    | Security-enabled global group changed | Monitor admin/sensitive group membership changes |
+| 4755/659    | Security-enabled universal group changed | Monitor admin/sensitive group membership changes |
+| 5136    | A directory service object was modified | Monitor for GPO changes, admin account modifications, specific user attribute modification, etc.. |
+
+
