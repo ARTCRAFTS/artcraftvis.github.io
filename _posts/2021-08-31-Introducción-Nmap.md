@@ -17,6 +17,16 @@ tags:
 
 
 # Introducción a Nmap
+
+## Check if any WAF
+
+```
+https://github.com/EnableSecurity/wafw00f
+wafw00f ip
+https://github.com/Ekultek/WhatWaf.git
+https://nmap.org/nsedoc/scripts/http-waf-detect.html
+```
+
 - Tipos.
 ```
 Full scan #SYN > SYN / ACK > ACK + RST = OPEN / SYN > RST = CLOSED
