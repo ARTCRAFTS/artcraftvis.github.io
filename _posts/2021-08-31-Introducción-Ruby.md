@@ -1,10 +1,10 @@
 ---
+
 layout: single
 title: Introducción NMAP
 excerpt: "Ruby es un lenguaje de programación interpretado, reflexivo y orientado a objetos, creado por el programador japonés Yukihiro "Matz" Matsumoto, quien comenzó a trabajar en Ruby en 1993, y lo presentó públicamente en 1995."
 date: 2021-08-31
 classes: wide
-
 categories:
   - Blue Team
   - infosec
@@ -19,23 +19,9 @@ tags:
 
 * https://ruby-doc.org/core-2.7.1/String.html
 * https://rubular.com/
-- Índice
-	* [Start](#Start)
-	* [Math](#Math)
-	* [Convert](#Convert)
-	* [Arrays_Lists_Variables](#Arrays_Lists_Variables)
-	* [Functions](#Functions)
-	* [Methods](#Methods)
-	* [Hash](#Hash)
-	* [Blocks](#Blocks)
-	* [Condicionales](#Condicionales)
-	* [Loops](#Loops)
-	* [Directories_Files](#Directories_Files)
-	* [Sockets](#Sockets)
-	* [ListarIP's](#ListarIP's)
-	* [Servidor](#Servidor)
-	* [Cliente](#Cliente)
+
 ## Start
+
 ```
 gem list #List all gems
 gem search #search for gems
