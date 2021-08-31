@@ -14,10 +14,6 @@ tags:
   - Red Team
 
 ---
-
-
-# Introducción a Nmap
-
 ## Check if any WAF
 
 ```
@@ -26,6 +22,10 @@ wafw00f ip
 https://github.com/Ekultek/WhatWaf.git
 https://nmap.org/nsedoc/scripts/http-waf-detect.html
 ```
+
+# Introducción a Nmap
+
+
 
 - Tipos.
 ```
