@@ -425,8 +425,7 @@ User account created and then deleted within 10 minutes across last 14 days.
   | summarize StartTimeUtc = min(TimeGenerated), EndTimeUtc = max(TimeGenerated), MachineCount=dcount(ComputerName) by CreatedUser, CreatedOnLocalMachine, InitiatingProcessFileName, FileName, ProcessCommandLine, InitiatingProcessCommandLine
   | extend timestamp = StartTimeUtc, AccountCustomEntity = CreatedUser
   ```
- - # SecurityAlert
- 
+
  ## Alerts_for_IP
  Any Alerts that fired related to a given IpAddress during the range of +6h and -3d.
  ```
@@ -491,7 +490,7 @@ User account created and then deleted within 10 minutes across last 14 days.
   GetAllAlertsOnHost(datetime('2019-01-20T10:02:51.000'), toupper("<hostname>"))
   ```
   
- - # OfficeActivity
+
   
   ## Office_Mail_Forwarding
 Adversaries often abuse email-forwarding rules to monitor activities of a victim, steal information and further gain intelligence on victim or victim's organization.This query over Office Activity data highlights cases where user mail is being forwarded and shows if it is being forwarded to external domains as well.
@@ -664,7 +663,7 @@ let timeframe = 14d;
   | where not(isempty(ClientIP)) 
   | extend timestamp = StartTimeUtc, IPCustomEntity = ClientIP 
   ```
-- # SigninLogs
+  
 ## DisabledAccountSigninAttempts
 Failed attempts to sign in to disabled accounts summarized by account name.
 ```
