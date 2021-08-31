@@ -1,7 +1,6 @@
 ---
 layout: single
 title: Introducción WIFI/WIFI6
-excerpt: 
 date: 2021-08-31
 classes: wide
 header:
@@ -11,7 +10,7 @@ categories:
 tags:
   - WIFI
 
-![](/assets/images/signal.jpg
+![](/assets/images/signal.jpg)
 
 ---
 
