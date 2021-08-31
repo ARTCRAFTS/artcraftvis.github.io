@@ -432,9 +432,8 @@ User account created and then deleted within 10 minutes across last 14 days.
   | extend timestamp = StartTimeUtc, AccountCustomEntity = CreatedUser
   ```
 
- ## Alerts_for_IP
- 
- Any Alerts that fired related to a given IpAddress during the range of +6h and -3d.
+## Alerts_for_IP
+  Any Alerts that fired related to a given IpAddress during the range of +6h and -3d.
  
  ```
    let GetAllAlertsWithIp = (suspiciousEventTime:datetime, v_ipAddress:string){
@@ -455,7 +454,8 @@ User account created and then deleted within 10 minutes across last 14 days.
   // change datetime value and <ipaddress> value below
   GetAllAlertsWithIp(datetime('2019-02-05T10:02:51.000'), ("<ipaddress>"))
   ```
-  ## Alerts_for_USER
+  
+## Alerts_for_USER
   Any Alerts that fired related to a given account during the range of +6h and -3d.
   
   ```
@@ -477,8 +477,9 @@ User account created and then deleted within 10 minutes across last 14 days.
   // change datetime value and username value below
   GetAllAlertsForUser(datetime('2019-01-20T10:02:51.000'), toupper("<username>"))
   ```
-  ## Alerts_for_HOST
- Any Alerts that fired on a given host during the range of +6h and -3d.
+  
+## Alerts_for_HOST
+  Any Alerts that fired on a given host during the range of +6h and -3d.
  
   ```
   let GetAllAlertsOnHost = (suspiciousEventTime:datetime, v_Host:string){
@@ -500,10 +501,8 @@ User account created and then deleted within 10 minutes across last 14 days.
   GetAllAlertsOnHost(datetime('2019-01-20T10:02:51.000'), toupper("<hostname>"))
   ```
   
-
-  
-  ## Office_Mail_Forwarding
-Adversaries often abuse email-forwarding rules to monitor activities of a victim, steal information and further gain intelligence on victim or victim's organization.This query over Office Activity data highlights cases where user mail is being forwarded and shows if it is being forwarded to external domains as well.
+## Office_Mail_Forwarding
+  Adversaries often abuse email-forwarding rules to monitor activities of a victim, steal information and further gain intelligence on victim or victim's organization.This query   over Office Activity data highlights cases where user mail is being forwarded and shows if it is being forwarded to external domains as well.
 
 ```
 let timeframe = 14d;
@@ -529,7 +528,8 @@ let timeframe = 14d;
   | project TimeGenerated, UserId, UserDomain, subDomain, Operation, ForwardedtoDomain, ClientIPAddress, Result, Port, OriginatingServer, OfficeObjectId, fwdingDestination
   | extend timestamp = TimeGenerated, AccountCustomEntity = UserId, IPCustomEntity = ClientIPAddress, HostCustomEntity =  OriginatingServer 
   ```
-  ## Teams_Files_uploaded
+  
+## Teams_Files_uploaded
   Provides a summary of files uploaded to teams chats and extracts 
   the users and IP addresses that have accessed them.
   
@@ -551,7 +551,8 @@ let timeframe = 14d;
   | extend NumberUsers = array_length(bag_keys(bag_userBag))
   | project timestamp=TimeGenerated, AccountCustomEntity=UserId, FileLocation=OfficeObjectId, FileName=SourceFileName, AccessedBy=bag_userBag, NumberOfUsersAccessed=NumberUsers
   ```
-  ## Double_file_ext_exes
+  
+## Double_file_ext_exes
   Provides a summary of executable files with double file extensions in SharePoint 
   and the users and IP addresses that have accessed them.
   
@@ -577,7 +578,8 @@ let timeframe = 14d;
   | project UploadTime=Start, Uploader=UserId, FileLocation=OfficeObjectId, FileName=SourceFileName, AccessedBy=bag_userBag, Extension, NumberOfUsers
   | extend timestamp = UploadTime, AccountCustomEntity = Uploader
   ```
-  ## New_Admin_account
+  
+## New_Admin_account
   This will help you discover any new admin account activity which was seen and were not seen historically. 
   Any new accounts seen in the results can be validated and investigated for any suspicious activities.
   
@@ -606,7 +608,8 @@ let timeframe = 14d;
   | summarize count(), min(TimeGenerated), max(TimeGenerated) by RecordType, Operation, UserType, UserId, OriginatingServer, ResultStatus
   | extend timestamp = min_TimeGenerated, AccountCustomEntity = UserId
   ```
-  ## New_sharepoint_downloads_by_IP
+  
+## New_sharepoint_downloads_by_IP
   Shows volume of documents uploaded to or downloaded from Sharepoint by new IP addresses. 
   In stable environments such connections by new IPs may be unauthorized, especially if associated with 
   spikes in volume which could be associated with large-scale document exfiltration.
@@ -631,7 +634,8 @@ let timeframe = 14d;
   | extend timestamp = StartTimeUtc, IPCustomEntity = ClientIP
   
   ```
-  ## New_sharepoint_downloads_USERAGENT
+  
+## New_sharepoint_downloads_USERAGENT
   Tracking via user agent is one way to differentiate between types of connecting device. 
   In homogeneous enterprise environments the user agent associated with an attacker device may stand out as unusual.
   
@@ -656,7 +660,8 @@ let timeframe = 14d;
   | extend timestamp = StartTimeUtc
 
   ```
-  ## Sharepoint_downloads
+  
+## Sharepoint_downloads
   New user agents associated with a clientIP for sharepoint file uploads/downloads.
   
   ```
@@ -682,7 +687,7 @@ let timeframe = 14d;
   ```
   
 ## DisabledAccountSigninAttempts
-Failed attempts to sign in to disabled accounts summarized by account name.
+    Failed attempts to sign in to disabled accounts summarized by account name.
 
 ```
   let timeRange = 14d;
@@ -695,11 +700,12 @@ Failed attempts to sign in to disabled accounts summarized by account name.
   | order by count_ desc
   
 ```
+
 ## Inactive_Accounts
-Query for accounts seen signing in for the first time - these could be associated
-with stale/inactive accounts that ought to have been deleted but weren't - and have 
-subseuqently been compromised. 
-Results for user accounts created in the last 7 days are filtered out.
+    Query for accounts seen signing in for the first time - these could be associated
+    with stale/inactive accounts that ought to have been deleted but weren't - and have 
+    subseuqently been compromised. 
+    Results for user accounts created in the last 7 days are filtered out.
 
 ```
 //Inactive accounts that sign in - first-time logins for accounts created in last 7 days are filtered out
