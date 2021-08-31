@@ -1,18 +1,20 @@
 ---
 layout: single
 title: Introducción WIFI/WIFI6
+excerpt: "Es una tecnología que permite la interconexión inalámbrica de dispositivos electrónicos. 
+Los dispositivos habilitados con wifi tales como:
+(ordenadores personales, teléfonos, televisores, videoconsolas, reproductores de música, etcétera) pueden conectarse 
+entre sí o a Internet a través de un punto de acceso de red inalámbrica."
 date: 2021-08-31
 classes: wide
-header:
-  teaser: /assets/images/wifipng.png
-  teaser_home_page: true
+
 categories:
   - infosec
 tags:
   - WIFI
 ---
 
-![](/assets/images/wifipng.png)
+
 
 
 # Introducción WI-FI, Wi-Fi-6
