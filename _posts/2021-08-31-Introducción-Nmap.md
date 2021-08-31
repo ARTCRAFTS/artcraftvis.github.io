@@ -1,3 +1,19 @@
+---
+layout: single
+title: Introducción NMAP
+excerpt: "Nmap es un programa de código abierto que sirve para efectuar rastreo de puertos escrito originalmente por Gordon Lyon y cuyo desarrollo se encuentra hoy a cargo de una comunidad."
+date: 2021-08-31
+classes: wide
+
+categories:
+  - Blue Team
+  - infosec
+tags:
+  - Blue Team
+
+---
+
+
 # Introducción a Nmap
 - Tipos.
 ```
