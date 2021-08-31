@@ -194,11 +194,10 @@ A summary of failed logons can be used to infer lateral movement with the intent
   | summarize StartTimeUtc = min(TimeGenerated), EndTimeUtc = max(TimeGenerated), count() by Reason
   | extend timestamp = StartTimeUtc
   ```
-  ## Hosts_with_new_logons
-  Shows new accounts that have logged onto a host for the first time - this may clearly be benign activity but an account 
-  logging onto multiple hosts for the first time can also be used to look for evidence of that account being used to move 
-  laterally across a network.
-  
+## Hosts_with_new_logons
+Shows new accounts that have logged onto a host for the first time - this may clearly be benign activity but an account 
+logging onto multiple hosts for the first time can also be used to look for evidence of that account being used to move 
+laterally across a network.
 ```
   let starttime = 7d;
   let endtime = 1d;
@@ -226,7 +225,6 @@ A summary of failed logons can be used to infer lateral movement with the intent
   | extend timestamp = StartTimeUtc, AccountCustomEntity = AccountName
 ```
 ## Process_entropy
-
 Entropy calculation used to help identify Hosts where they have a high variety of processes(a high entropy process list on a given Host over time).
 This helps us identify rare processes on a given Host. Rare here means a process shows up on the Host relatively few times in the the last 7days.
 The Weight is calculated based on the Entropy, Process Count and Distinct Hosts with that Process. The lower the Weight/ProcessEntropy the, more interesting.
