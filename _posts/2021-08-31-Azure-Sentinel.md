@@ -1331,9 +1331,11 @@ let timeRange=ago(7d);
 6423	The installation of this device is forbidden by system policy
 6424	The installation of this device was allowed, after having previously been forbidden by policy
 8191	Highest System-Defined Audit Message Value
-  ```
+```
+
 ## SIDS
 Todas las versiones de Windows utilizan los siguientes SID conocidos.
+
 | SID | Nombre | Descripción |
 | --- | ------ | ----------- |
 | S-1-0 | Entidad nula | entidad de identificador |
