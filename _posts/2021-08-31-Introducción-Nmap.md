@@ -7,9 +7,11 @@ classes: wide
 
 categories:
   - Blue Team
+  - Red Team
   - infosec
 tags:
   - Blue Team
+  - Red Team
 
 ---
 
