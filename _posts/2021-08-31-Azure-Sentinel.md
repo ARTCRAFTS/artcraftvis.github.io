@@ -376,6 +376,7 @@ User account created and then deleted within 10 minutes across last 14 days.
   | sort by AccountName, Target
   | extend timestamp = minTimeGenerated, AccountCustomEntity = AccountName, HostCustomEntity = ComputerName
   ```
+  
 ## New_processes_24h
   These new processes could be benign new programs installed on hosts; however, especially in normally stable environments, 
   these new processes could provide an indication of an unauthorized/malicious binary that has been installed and run. 
