@@ -312,6 +312,7 @@ let end = startofday(now());
 ## Logons_by_type
 Comparing succesful and nonsuccessful logon attempts can be used to identify attempts to move laterally within the 
 environment with the intention of discovering credentials and sensitive data.
+
 ```
 let timeframe = 1d;
   SecurityEvent
