@@ -225,7 +225,7 @@ let starttime = 14d;
   | summarize StartTimeUtc = min(StartTimeUtc), EndTimeUtc = max(EndTimeUtc), HostCount=dcount(ComputerName), HostSet=makeset(ComputerName, 10)  by AccountName, ComputerName
   | extend timestamp = StartTimeUtc, AccountCustomEntity = AccountName
 ```
-  ## Process_entropy
+## Process_entropy
 Entropy calculation used to help identify Hosts where they have a high variety of processes(a high entropy process list on a given Host over time).
 This helps us identify rare processes on a given Host. Rare here means a process shows up on the Host relatively few times in the the last 7days.
 The Weight is calculated based on the Entropy, Process Count and Distinct Hosts with that Process. The lower the Weight/ProcessEntropy the, more interesting.
@@ -233,6 +233,7 @@ The Weight calculation increases the Weight if the process executes more than on
 In general, this should identify processes on a Host that are rare and rare for the environment.
 References: https://medium.com/udacity/shannon-entropy-information-gain-and-picking-balls-from-buckets-5810d35d54b4.
 https://en.wiktionary.org/wiki/Shannon_entropy.
+
 ```
 let end = startofday(now());
   let start = end - 7d;
@@ -306,8 +307,8 @@ let end = startofday(now());
   | project TimeGenerated, EventID, Computer, SubjectUserSid, Account, Weight, AdjustedProcessEntropy, FullDecimalProcessEntropy = ProcessEntropy, Process, NewProcessName, CommandLine, ParentProcessName, TotalProcessCountOnHost, ProcessCountOnHost, DistinctComputersWithProcessCount
   | sort by Weight asc, AdjustedProcessEntropy asc, NewProcessName asc
   | extend timestamp = TimeGenerated, HostCustomEntity = Computer, AccountCustomEntity = Account
-
 ```
+
 ## Logons_by_type
 Comparing succesful and nonsuccessful logon attempts can be used to identify attempts to move laterally within the 
 environment with the intention of discovering credentials and sensitive data.
