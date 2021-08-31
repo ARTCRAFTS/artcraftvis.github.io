@@ -1402,7 +1402,6 @@ Cuando se agrega a un dominio un controlador de dominio que se ejecute en Window
 
 | SID | Nombre | Descripción |
 | --- | ------ | ----------- |
-
 S-1-3-2 | Creator Owner Server | Este SID no se utiliza en Windows 2000 |
 S-1-3-3 | Creator Group Server | Este SID no se utiliza en Windows 2000 |
 S-1-5-8 | Proxy | este SID no se utiliza en Windows 2000 |
@@ -1422,7 +1421,6 @@ Cuando se agrega a un dominio un controlador de dominio que se ejecute en Window
 
 | SID | Nombre | Descripción |
 | --- | ------ | ----------- |
-
 S-1-2-1	| Inicio de sesión en la consola	| Grupo que incluye los usuarios que han iniciado sesión en la consola física |
 S-1-5-21dominio-498 | Controladores de dominio de sólo lectura de empresa | Un grupo universal. Los miembros de este grupo son los controladores de dominio de solo lectura en la empresa | 
 S-1-5-21dominio-521 | Controladores de dominio de sólo lectura | Un grupo global. Los miembros de este grupo son los controladores de dominio de solo lectura en el dominio | 
@@ -1450,7 +1448,6 @@ S-1-16-28672 | Nivel obligatorio de proceso seguro	| nivel de integridad de proc
 
 | SID | Nombre | Descripción |
 | --- | ------ | ----------- |
-
 S-1-5-21-dominio-522 | Controladores de dominio clonables	| 	Un grupo global. Los miembros de este grupo que son controladores de dominio pueden clonarse |
 S-1-5-32-575 | Builtin\Servidores de acceso remoto RDS	| Un grupo local integrado. Los servidores en este grupo habilitan a los usuarios de programas RemoteApp y acceso a escritorios virtuales personales a estos recursos. En implementaciones con conexión a Internet, estos servidores suelen implementarse en una red perimetral. Este grupo debe estar constituido en servidores que ejecutan Agentes de conexión a Escritorio remoto. Los servidores de puertas de enlace de Escritorio remoto y los servidores de acceso web de Escritorio remoto utilizados en la implementación deben encontrarse en este grupo | 
 S-1-5-32-576 | Builtin\Servidores de punto de conexión RDS | 	Un grupo local integrado. Los servidores en este grupo ejecutan máquinas virtuales y hospedan sesiones donde se ejecutan los programas RemoteApp de los usuarios y los escritorios virtuales personales. Este grupo debe estar constituido en servidores que ejecutan Agentes de conexión a Escritorio remoto. Los servidores de host de sesión de Escritorio Remoto y los servidores de host de virtualización de Escritorio Remoto utilizados en la implementación deben encontrarse en este grupo | 
