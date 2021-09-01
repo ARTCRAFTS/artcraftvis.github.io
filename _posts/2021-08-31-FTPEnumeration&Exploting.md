@@ -7,8 +7,10 @@ classes: wide
 categories:
   - Red Team
   - infosec
+  - Services
 tags:
   - Red Team
+  - Services
 
 ---
 
