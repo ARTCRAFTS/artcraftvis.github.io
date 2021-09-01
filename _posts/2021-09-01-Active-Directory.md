@@ -1,3 +1,20 @@
+---
+layout: single
+title: Active Directory 
+excerpt: "Active Directory is the directory service for Windows Domain Networks. It is used by many of today's top companies and is a vital skill to comprehend when attacking Windows."
+date: 2021-09-01
+classes: wide
+
+categories:
+  - Blue Team
+  - infosec
+  - Red Team
+tags:
+  - Blue Team
+  - Red Team
+---
+
+
 # Introduction
 Active Directory is the directory service for Windows Domain Networks. It is used by many of today's top companies and is a vital skill to comprehend when attacking Windows.
 
