@@ -301,6 +301,19 @@ The main ticket that you will see is a ticket-granting ticket these can come in 
 
 Basic enumeration starts out with an nmap scan. Nmap is a relatively complex utility that has been refined over the years to detect what ports are open on a device, what services are running, and even detect what operating system is running. It's important to note that not all services may be deteted correctly and not enumerated to it's fullest potential. Despite nmap being an overly complex utility, it cannot enumerate everything. Therefore after an initial nmap scan we'll be using other utilities to help us enumerate the services running on the device.
 
+
+# Kerbrute Installation - 
+
+```
+
+Download a precompiled binary for your OS - https://github.com/ropnop/kerbrute/releases
+
+mv kerbrute_linux_amd64 to kerbrute
+
+chmod +x kerbrute - make kerbrute executable
+
+```
+
 ## Enumerating Users via Kerberos
 
 A whole host of other services are running, including Kerberos. Kerberos is a key authentication service within Active Directory. With this port open, we can use a tool called Kerbrute (by Ronnie Flathers @ropnop) to brute force discovery of users, passwords and even password spray!
