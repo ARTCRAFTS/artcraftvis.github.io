@@ -312,6 +312,9 @@ mv kerbrute_linux_amd64 to kerbrute
 
 chmod +x kerbrute - make kerbrute executable
 
+./kerbrute userenum --dc CONTROLLER.local -d CONTROLLER.local User.txt
+
+
 ```
 
 ## Enumerating Users via Kerberos
@@ -323,6 +326,7 @@ Note: Several users have informed me that the latest version of Kerbrute does no
 ```
 https://github.com/ropnop/kerbrute/releases
 pip3 install kerbrute
+
 kerbrute -domain spookysec.local -users userlist.txt
 
 ```
