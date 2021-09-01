@@ -398,3 +398,131 @@ evil-winrm -i ip -u user -H 0e0363213e37bXXXXX497260b0bcb4fc
 python3 psexec.py Administrator:@spookysec.local -hashes aad3b435b51404XXXXX3b435b51404ee:0e0363213e37bXXXXX497260b0bcb4fc
 ```
 
+
+## Harvesting & Brute-Forcing Tickets w/ Rubeus
+
+
+Rubeus is a powerful tool for attacking Kerberos. Rubeus is an adaptation of the kekeo tool and developed by HarmJ0y the very well known active directory guru.
+
+Rubeus has a wide variety of attacks and features that allow it to be a very versatile tool for attacking Kerberos. Just some of the many tools and attacks include overpass the hash, ticket requests and renewals, ticket management, ticket extraction, harvesting, pass the ticket, AS-REP Roasting, and Kerberoasting.
+
+The tool has way too many attacks and features for me to cover all of them so I'll be covering only the ones I think are most crucial to understand how to attack Kerberos however I encourage you to research and learn more about Rubeus and its whole host of attacks and features here - https://github.com/GhostPack/Rubeus
+
+Rubeus is already compiled and on the target machine.
+
+![image](https://user-images.githubusercontent.com/89842187/131720308-1950493c-bbf0-4134-bd59-771fe7228079.png)
+
+## Harvesting Tickets w/ Rubeus
+
+
+Harvesting gathers tickets that are being transferred to the KDC and saves them for use in other attacks such as the pass the ticket attack.
+
+```
+cd Downloads - navigate to the directory Rubeus is in
+
+Rubeus.exe harvest /interval:30 - This command tells Rubeus to harvest for TGTs every 30 seconds
+
+```
+![image](https://user-images.githubusercontent.com/89842187/131720388-468485f5-8a97-40e3-aca2-f3efb57efbed.png)
+
+
+## Brute-Forcing / Password-Spraying w/ Rubeus 
+
+Rubeus can both brute force passwords as well as password spray user accounts. When brute-forcing passwords you use a single user account and a wordlist of passwords to see which password works for that given user account. In password spraying, you give a single password such as Password1 and "spray" against all found user accounts in the domain to find which one may have that password.
+
+This attack will take a given Kerberos-based password and spray it against all found users and give a .kirbi ticket. This ticket is a TGT that can be used in order to get service tickets from the KDC as well as to be used in attacks like the pass the ticket attack.
+
+Before password spraying with Rubeus, you need to add the domain controller domain name to the windows host file. You can add the IP and domain name to the hosts file from the machine by using the echo command: 
+
+```
+echo 10.10.236.219 CONTROLLER.local >> C:\Windows\System32\drivers\etc\hosts
+
+1. cd Downloads - navigate to the directory Rubeus is in
+
+2  Rubeus.exe brute /password:Password1 /noticket - This will take a given password and "spray" it against all found users then give the .kirbi TGT for that user 
+```
+
+![image](https://user-images.githubusercontent.com/89842187/131721298-a04498e7-bcb7-40f7-a7af-a30ddde3468e.png)
+
+
+Be mindful of how you use this attack as it may lock you out of the network depending on the account lockout policies.
+
+## Kerberoasting w/ Rubeus & Impacket
+
+
+In this task we'll be covering one of the most popular Kerberos attacks - Kerberoasting. Kerberoasting allows a user to request a service ticket for any service with a registered SPN then use that ticket to crack the service password. If the service has a registered SPN then it can be Kerberoastable however the success of the attack depends on how strong the password is and if it is trackable as well as the privileges of the cracked service account. To enumerate Kerberoastable accounts I would suggest a tool like BloodHound to find all Kerberoastable accounts, it will allow you to see what kind of accounts you can kerberoast if they are domain admins, and what kind of connections they have to the rest of the domain. That is a bit out of scope for this room but it is a great tool for finding accounts to target.
+
+In order to perform the attack, we'll be using both Rubeus as well as Impacket so you understand the various tools out there for Kerberoasting. There are other tools out there such a kekeo and Invoke-Kerberoast but I'll leave you to do your own research on those tools.
+
+I have already taken the time to put Rubeus on the machine for you, it is located in the downloads folder.
+
+## Kerberoasting w/ Rubeus
+
+![image](https://user-images.githubusercontent.com/89842187/131721884-959838a5-5abc-4d62-a46d-32b65e537797.png)
+
+- copy the hash onto your attacker machine and put it into a .txt file so we can crack it with hashcat
+
+## Method 2 - Impacket
+
+## Impacket Installation
+
+Impacket releases have been unstable since 0.9.20 I suggest getting an installation of Impacket < 0.9.20
+
+```
+cd /opt navigate to your preferred directory to save tools in 
+
+2download the precompiled package from https://github.com/SecureAuthCorp/impacket/releases/tag/impacket_0_9_19
+
+cd Impacket-0.9.19 navigate to the impacket directory
+
+pip install . - this will install all needed dependencies
+
+```
+Kerberoasting w/ Impacket - 
+
+```
+
+cd /usr/share/doc/python3-impacket/examples/ - navigate to where GetUserSPNs.py is located
+
+sudo python3 GetUserSPNs.py domain.local/user:Password1 -dc-ip 10.10.236.219 -request # this will dump the Kerberos hash for all kerberoastable accounts it can find on the target domain just like Rubeus does; however, this does not have to be on the targets machine and can be done remotely.
+
+hashcat -m 13100 -a 0 hash.txt Pass.txt - now crack that hash
+
+```
+
+## What Can a Service Account do?
+
+After cracking the service account password there are various ways of exfiltrating data or collecting loot depending on whether the service account is a domain admin or not. If the service account is a domain admin you have control similar to that of a golden/silver ticket and can now gather loot such as dumping the NTDS.dit. If the service account is not a domain admin you can use it to log into other systems and pivot or escalate or you can use that cracked password to spray against other service and domain admin accounts; many companies may reuse the same or similar passwords for their service or domain admin users. If you are in a professional pen test be aware of how the company wants you to show risk most of the time they don't want you to exfiltrate data and will set a goal or process for you to get in order to show risk inside of the assessment.
+
+## Kerberoasting Mitigation
+
+- Strong Service Passwords - If the service account passwords are strong then kerberoasting will be ineffective
+- Don't Make Service Accounts Domain Admins - Service accounts don't need to be domain admins, kerberoasting won't be as effective if you don't make service accounts domain admins.
+
+
+## AS-REP Roasting w/ Rubeus
+
+Very similar to Kerberoasting, AS-REP Roasting dumps the krbasrep5 hashes of user accounts that have Kerberos pre-authentication disabled. Unlike Kerberoasting these users do not have to be service accounts the only requirement to be able to AS-REP roast a user is the user must have pre-authentication disabled.
+
+We'll continue using Rubeus same as we have with kerberoasting and harvesting since Rubeus has a very simple and easy to understand command to AS-REP roast and attack users with Kerberos pre-authentication disabled. After dumping the hash from Rubeus we'll use hashcat in order to crack the krbasrep5 hash.
+
+There are other tools out as well for AS-REP Roasting such as kekeo and Impacket's GetNPUsers.py. Rubeus is easier to use because it automatically finds AS-REP Roastable users whereas with GetNPUsers you have to enumerate the users beforehand and know which users may be AS-REP Roastable.
+
+I have already compiled and put Rubeus on the machine.
+
+
+## AS-REP Roasting Overview
+
+During pre-authentication, the users hash will be used to encrypt a timestamp that the domain controller will attempt to decrypt to validate that the right hash is being used and is not replaying a previous request. After validating the timestamp the KDC will then issue a TGT for the user. If pre-authentication is disabled you can request any authentication data for any user and the KDC will return an encrypted TGT that can be cracked offline because the KDC skips the step of validating that the user is really who they say that they are.
+
+## Dumping KRBASREP5 Hashes w/ Rubeus
+![image](https://user-images.githubusercontent.com/89842187/131724074-5b222aa9-85bb-4f4c-804d-ca562f968c52.png)
+
+```
+Rubeus.exe asreproast
+```
+
+## AS-REP Roasting Mitigations 
+
+- Have a strong password policy. With a strong password, the hashes will take longer to crack making this attack less effective
+- Don't turn off Kerberos Pre-Authentication unless it's necessary there's almost no other way to completely mitigate this attack other than keeping Pre-Authentication on.
