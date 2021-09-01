@@ -227,3 +227,55 @@ The best way to show you how the cloud takes security precautions past what is a
 - Guests
 
 This is only an overview of Active Directory in the cloud so we will not be going into detail of any of these protocols; however, I encourage you to go out and do your own research into these cloud protocols and how they are more secure than their physical counterparts, and if they themselves come with vulnerabilities
+
+
+
+
+# Attacktive Directory
+
+## Enumeration
+
+Basic enumeration starts out with an nmap scan. Nmap is a relatively complex utility that has been refined over the years to detect what ports are open on a device, what services are running, and even detect what operating system is running. It's important to note that not all services may be deteted correctly and not enumerated to it's fullest potential. Despite nmap being an overly complex utility, it cannot enumerate everything. Therefore after an initial nmap scan we'll be using other utilities to help us enumerate the services running on the device.
+
+## Enumerating Users via Kerberos
+
+A whole host of other services are running, including Kerberos. Kerberos is a key authentication service within Active Directory. With this port open, we can use a tool called Kerbrute (by Ronnie Flathers @ropnop) to brute force discovery of users, passwords and even password spray!
+
+Note: Several users have informed me that the latest version of Kerbrute does not contain the UserEnum flag in Kerbrute, if that is the case with the version you have selected, try a older version!
+
+```
+https://github.com/ropnop/kerbrute/releases
+pip3 install kerbrute
+kerbrute -domain spookysec.local -users userlist.txt
+
+```
+
+## Abusing Kerberos
+
+## Introduction
+
+After the enumeration of user accounts is finished, we can attempt to abuse a feature within Kerberos with an attack method called ASREPRoasting. ASReproasting occurs when a user account has the privilege "Does not require Pre-Authentication" set. This means that the account does not need to provide valid identification before requesting a Kerberos Ticket on the specified user account.
+
+## Retrieving Kerberos Tickets
+
+Impacket has a tool called "GetNPUsers.py" (located in impacket/examples/GetNPUsers.py) that will allow us to query ASReproastable accounts from the Key Distribution Center. The only thing that's necessary to query accounts is a valid set of usernames which we enumerated previously via Kerbrute.
+
+```
+
+python3 GetNPUsers.py <domain>/<user> # OR cycle thru users file.
+
+https://hashcat.net/wiki/doku.php?id=example_hashes
+
+hashcat -m 18200 hash.txt passwordlist.txt --force
+
+```
+
+
+# Enumeration:
+
+With a user's account credentials we now have significantly more access within the domain. We can now attempt to enumerate any shares that the domain controller may be giving out.
+
+```
+smbclient -L example --user svc-admin
+smbclient \\\\spookysec.local\\backup --user svc-admin
+```
