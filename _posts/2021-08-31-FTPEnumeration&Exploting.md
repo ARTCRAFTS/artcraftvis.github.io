@@ -23,6 +23,12 @@ searchsploit -x 7618[.c] #Open vi to inspect the exploit
 searchsploit --nmap file.xml #Search vulns inside an nmap xml result
 ```
 
+## Default Port
+
+```
+21
+```
+
 # What is FTP?
 
 - File Transfer Protocol (FTP) is, as the name suggests , a protocol used to allow remote transfer of files over a network. It uses a client-server model to do this, and- as we'll come on to later- relays commands and data in a very efficient way.
