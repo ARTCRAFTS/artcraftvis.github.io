@@ -314,3 +314,102 @@ Press Save, then click on the icon in the task bar again to bring up the proxy m
 Once activated, all of your browser traffic will be redirected through the chosen port (so make sure the proxy is active!). Be aware that if the target network doesn't have internet access (like all TryHackMe boxes) then you will not be able to access the outside internet when the proxy is activated. Even in a real engagement, routing your general internet searches through a client's network is unwise anyway, so turning the proxy off (or using the routing features in FoxyProxy standard) for everything other than interaction with the target network is advised.
 
 With the proxy activated, you can simply navigate to the target domain or IP in your browser and the proxy will take care of the rest!
+
+
+## SSH Tunnelling / Port Forwarding
+
+
+The first tool we'll be looking at is none other than the bog-standard SSH client with an OpenSSH server. Using these simple tools, it's possible to create both forward and reverse connections to make SSH "tunnels", allowing us to forward ports, and/or create proxies.
+
+## Forward Connections
+
+Creating a forward (or "local") SSH tunnel can be done from our attacking box when we have SSH access to the target. As such, this technique is much more commonly used against Unix hosts. Linux servers, in particular, commonly have SSH active and open. That said, Microsoft (relatively) recently brought out their own implementation of the OpenSSH server, native to Windows, so this technique may begin to get more popular in this regard if the feature were to gain more traction.
+
+There are two ways to create a forward SSH tunnel using the SSH client -- port forwarding, and creating a proxy.
+
+- Port forwarding is accomplished with the -L switch, which creates a link to a Local port. For example, if we had SSH access to 172.16.0.5 and there's a webserver running on 172.16.0.10, we could use this command to create a link to the server on 172.16.0.10:
+ssh -L 8000:172.16.0.10:80 user@172.16.0.5 -fN
+We could then access the website on 172.16.0.10 (through 172.16.0.5) by navigating to port 8000 on our own attacking machine. For example, by entering localhost:8000 into a web browser. Using this technique we have effectively created a tunnel between port 80 on the target server, and port 8000 on our own box. Note that it's good practice to use a high port, out of the way, for the local connection. This means that the low ports are still open for their correct use (e.g. if we wanted to start our own webserver to serve an exploit to a target), and also means that we do not need to use sudo to create the connection. The -fN combined switch does two things: -f backgrounds the shell immediately so that we have our own terminal back. -N tells SSH that it doesn't need to execute any commands -- only set up the connection.
+
+- Proxies are made using the -D switch, for example: -D 1337. This will open up port 1337 on your attacking box as a proxy to send data through into the protected network. This is useful when combined with a tool such as proxychains. An example of this command would be:
+ssh -D 1337 user@172.16.0.5 -fN
+This again uses the -fN switches to background the shell. The choice of port 1337 is completely arbitrary -- all that matters is that the port is available and correctly set up in your proxychains (or equivalent) configuration file. Having this proxy set up would allow us to route all of our traffic through into the target network.
+
+## Reverse Connections
+
+Reverse connections are very possible with the SSH client (and indeed may be preferable if you have a shell on the compromised server, but not SSH access). They are, however, riskier as you inherently must access your attacking machine from the target -- be it by using credentials, or preferably a key based system. Before we can make a reverse connection safely, there are a few steps we need to take:
+
+First, generate a new set of SSH keys and store them somewhere safe (ssh-keygen):
+
+![image](https://user-images.githubusercontent.com/89842187/131923248-ffda769d-19ce-438e-8ed5-8222266499ef.png)
+
+This will create two new files: a private key, and a public key.
+
+
+Copy the contents of the public key (the file ending with .pub), then edit the ~/.ssh/authorized_keys file on your own attacking machine. You may need to create the ~/.ssh directory and authorized_keys file first.
+On a new line, type the following line, then paste in the public key:
+command="echo 'This account can only be used for port forwarding'",no-agent-forwarding,no-x11-forwarding,no-pty
+This makes sure that the key can only be used for port forwarding, disallowing the ability to gain a shell on your attacking machine.
+
+The final entry in the authorized_keys file should look something like this:
+
+![image](https://user-images.githubusercontent.com/89842187/131923269-eb023537-ff00-49ef-b229-6b69a19512d2.png)
+
+If the status command indicates that the server is not running then you can start the ssh service with:
+```
+sudo systemctl start ssh
+```
+The only thing left is to do the unthinkable: transfer the private key to the target box. This is usually an absolute no-no, which is why we generated a throwaway set of SSH keys to be discarded as soon as the engagement is over.
+
+With the key transferred, we can then connect back with a reverse port forward using the following command:
+
+```
+ssh -R LOCAL_PORT:TARGET_IP:TARGET_PORT USERNAME@ATTACKING_IP -i KEYFILE -fN
+
+```
+
+To put that into the context of our fictitious IPs: 172.16.0.10 and 172.16.0.5, if we have a shell on 172.16.0.5 and want to give our attacking box (172.16.0.20) access to the webserver on 172.16.0.10, we could use this command on the 172.16.0.5 machine:
+
+```
+ssh -R 8000:172.16.0.10:80 kali@172.16.0.20 -i KEYFILE -fN
+
+```
+
+This would open up a port forward to our Kali box, allowing us to access the 172.16.0.10 webserver, in exactly the same way as with the forward connection we made before!
+
+In newer versions of the SSH client, it is also possible to create a reverse proxy (the equivalent of the -D switch used in local connections). This may not work in older clients, but this command can be used to create a reverse proxy in clients which do support it:
+
+```
+ssh -R 1337 USERNAME@ATTACKING_IP -i KEYFILE -fN
+
+
+```
+
+This, again, will open up a proxy allowing us to redirect all of our traffic through localhost port 1337, into the target network.
+
+Note: Modern Windows comes with an inbuilt SSH client available by default. This allows us to make use of this technique in Windows systems, even if there is not an SSH server running on the Windows system we're connecting back from. In many ways this makes the next task covering plink.exe redundant; however, it is still very relevant for older systems.
+
+To close any of these connections, type ps aux | grep ssh into the terminal of the machine that created the connection:
+
+![image](https://user-images.githubusercontent.com/89842187/131923384-222d4510-0003-49b5-8313-2ef263766468.png)
+
+
+Find the process ID (PID) of the connection. In the above image this is 105238.
+
+Finally, type sudo kill PID to close the connection:
+
+![image](https://user-images.githubusercontent.com/89842187/131923403-56b3885f-e82a-4b0b-8a2e-5a294a717917.png)
+
+
+If you wanted to set up a reverse portforward from port 22 of a remote machine (172.16.0.100) to port 2222 of your local machine (172.16.0.200), using a keyfile called id_rsa and backgrounding the shell, what command would you use? (Assume your username is "kali")
+
+```
+ssh -R 2222:172.16.0.100:22 kali@172.16.0.200 -i id_rsa -fN
+```
+
+
+If you had SSH access to a server (172.16.0.50) with a webserver running internally on port 80 (i.e. only accessible to the server itself on 127.0.0.1:80), how would you forward it to port 8000 on your attacking machine? Assume the username is "user", and background the shell.
+
+```
+ssh -L 8000:127.0.0.1:80 user@172.16.0.50 -fN
+```
