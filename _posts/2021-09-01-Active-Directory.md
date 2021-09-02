@@ -693,9 +693,114 @@ The skeleton key works by abusing the AS-REQ encrypted timestamps as I said abov
 ## Accessing the forest
 
 The default credentials will be: "mimikatz"
-
+```
 example: net use c:\\DOMAIN-CONTROLLER\admin$ /user:Administrator mimikatz - The share will now be accessible without the need for the Administrators password
 
 example: dir \\Desktop-1\c$ /user:Machine1 mimikatz - access the directory of Desktop-1 without ever knowing what users have access to Desktop-1
-
+```
 The skeleton key will not persist by itself because it runs in the memory, it can be scripted or persisted using other tools and techniques however that is out of scope for this room.
+
+
+## Enumeration w/ Powerview
+
+Powerview is a powerful powershell script from powershell empire that can be used for enumerating a domain after you have already gained a shell in the system.
+
+We'll be focusing on how to start up and get users and groups from PowerView.
+
+I have already taken the time and put PowerView on the machine
+
+
+```
+1.) Start Powershell - powershell -ep bypass -ep bypasses the execution policy of powershell allowing you to easily run scripts
+
+```
+![image](https://user-images.githubusercontent.com/89842187/131857694-22a6785e-b0e7-43bc-8521-26e019027d62.png)
+
+```
+2.) Start PowerView - . .\Downloads\PowerView.ps1
+3.) Enumerate the domain users - Get-NetUser | select cn    
+```
+
+![image](https://user-images.githubusercontent.com/89842187/131857737-224ed15c-0231-4947-8f14-a0c488c49627.png)
+
+```
+4.) Enumerate the domain groups - Get-NetGroup -GroupName *admin*    
+```
+![image](https://user-images.githubusercontent.com/89842187/131857756-1d6b07d5-a6e0-4fd1-bd6d-8ff6367dd5c3.png)
+
+
+
+## Basic
+
+ ```
+ powershell -ep bypass #  load a powershell shell with execution policy bypassed
+ Get-NetComputer -fulldata | select operatingsystem # gets a list of all operating systems on the domain
+ Get-Help Get-Command -Examples #Information particular command
+ Get-NetUser | select cn #gets a list of all users on the domain
+ Get-Command New-* #Todos los cmdlets instalados
+ Get-Service | Where-Object -Property Status -eq Stopped #Stopped services
+ Get-Command | Where-Object -Property CommandType -eq Cmdlet | measure #CMDLETS Installed
+ Get-ChildItem -Path C:/ -Name interesting-file.txt -Recurse -File #encontrar archivo
+ Get-Content "C:\Program Files\interesting-file.txt.txt" #Get Contents
+ Get-FileHash -Path "C:\Program Files\interesting-file.txt.txt" -Algorithm MD5 #Get Hash
+ Get-Location or pwd #Current working directory
+ Get-Location -Path "C:\Users\Administrator\Documents\Passwords" # IT EXISTS?
+ Invoke-WebRequest # Peticion web
+ certutil -decode "C:\Users\Administrator\Desktop\b64.txt" out.txt #Decode
+
+ ```
+ 
+ ## Enumeration
+ 
+```
+Get-LocalUser  #How many users are there on the machine?
+Get-LocalUser | Where-Object -Property PasswordRequired -Match false # How many users have their password required values set to False?
+Get-LocalGroup | measure # How many local groups exist?
+Get-ADGroup -Filter * | Get groups
+Get-NetIPAddress # IP address info?
+Get-NetTCPConnection # How many ports are listed as listening?
+GEt-NetTCPConnection | Where-Object -Property State -Match Listen | measure # How many ports are listed as listening?
+Get-Hotfix | measure #How many patches have been applied?
+Get-Hotfix # When was the patch with ID KB4023834 installed?
+Get-Hotfix -Id KB4023834
+Get-ChildItem -Path C:\ -Include *.bak* -File -Recurse -ErrorAction SilentlyContinue # Find the contents of a backup file.
+Search for all files containing API_KEY # Get-ChildItem C:\* -Recurse | Select-String -pattern API_KEY
+Get-Process #List running procceses
+Get-ScheduleTask #Scheduled tasks
+Get-ScheduleTask -TaskName new-sched-task #path to new-sched-task
+Get-Acl c:/ #Who is the owner of the C:\
+ ```
+ 
+ 
+ ## Scripting
+ Look for Password string
+ ```
+$path = 'C:\Users\restr\Desktop*'
+$magic_word = 'password'
+$exec = Get-ChildItem $path -recurse | Select-String -pattern $magic_word
+echo $exec
+
+ ```
+ 
+ ## Files contains an HTTPs Link?
+ 
+ ```
+
+$path = "C:\Users\Administrator\Desktop\emails\*"
+$string_pattern = "https://"
+$command = Get-ChildItem -Path $path -Recurse | Select-String -Pattern $String_pattern
+echo $command
+ ```
+ 
+ 
+## Open Ports
+ 
+ ```
+ for($i=1; $i -le 65553; $i++){
+    Test-NetConnection localhost -Port $i
+}
+ ```
+
+
+Here's a cheatsheet to help you with commands: https://gist.github.com/HarmJ0y/184f9822b195c52dd50c379ed3117993
+
