@@ -1573,3 +1573,110 @@ Clicking on the dropdown arrow to the left of the task gives the task results:
 
 ![image](https://user-images.githubusercontent.com/89842187/132060624-056e9734-381b-4aad-a6aa-2a6c78b9f3fa.png)
 
+## Empire: Interactive Shell
+
+
+The interactive shell was a new feature in Empire 4.0. It effectively allows you to access a traditional pseudo-command shell from within Starkiller or the Empire CLI Client. This can be used to execute PowerShell commands, as you would in a Powershell reverse shell.
+
+To access the interactive shell in the Empire CLI Client, we can use the shell command from within the context of an agent:
+
+![image](https://user-images.githubusercontent.com/89842187/132060698-fca4d2fc-e144-48cf-bc27-7cb252e4d5f5.png)
+
+
+In Starkiller this is even easier as the shell can be found directly in the Agent interaction interface:
+
+![image](https://user-images.githubusercontent.com/89842187/132060715-dbb2132d-a071-4777-b69c-f73410d22997.png)
+
+Whilst not quite as "familiar" as the command line shell, this gives us the exact same access.
+
+## Conclusion
+
+We have now covered the fundamentals of working with a command and control framework. Empire is significantly more extensive than the basics we have looked at in the time and space available here, so it's well worth doing some more research on it in your own time!
+
+The overarching take-aways from this section are:
+
+- C2 Frameworks are used to consolidate access to a compromised machine, as well as streamline post-exploitation attempts
+- There are many C2 Frameworks available, so look into which ones work best for your use case
+- Empire is a good choice as a relatively well-rounded, open source C2 framework
+- Empire is still in active development, with upgrades and new features being released frequently
+- Starkiller is a GUI front-end for Empire which makes collaboration using the framework very easy
+
+This has very much been a whistle-stop tour of both the Empire framework and the topic in general, but hopefully it has been useful nonetheless.
+
+
+## Enumeration
+
+We will soon be moving on to the final teaching point of this network: Anti-virus evasion techniques.
+
+Before we can do that, however, we first need to scope out the final target!
+
+We know from the briefing that this target is likely to be the other Windows machine on the network. By process of elimination we can tell that this is Thomas' PC which he told us has antivirus software installed. If we're very lucky it will be out of date though!
+
+As always, we need to enumerate the target before we can do anything else, but how can we do this from a compromised Windows host? As mentioned way back in the Pivoting Enumeration task, Nmap won't work on Windows unless it's been properly installed on the target. Scanning through one proxy is bad, but at this point we'd be scanning through two proxies, which would be unbearable. We could write a tool to do it for us, but let's leave that for the time being (there will be more than enough coding in the upcoming section as it is!). Instead, let's look closer to home and ask one burning question:
+
+How do Empire Modules work?
+
+For the most part Empire modules are quite literally just scripts (usually in PowerShell) that are executed by the framework through an active agent.  In other words, these are just PowerShell scripts, and we have PowerShell access to the target.
+
+For the sake of learning, let's upload the Empire Port Scanning script and execute it manually on the target.
+
+In our current situation (on an isolated target, communicating through a jumpserver), under normal circumstances uploading tools manually would usually be something of a chore -- think relays and webservers. Fortunately evil-winrm gives us several easy options for transferring and including tools.
+
+## upload/Download
+
+Upload/Download:
+The first option available to us is the in-built Upload/Download feature built into the tool. From within evil-winrm we can use upload LOCAL_FILEPATH REMOTE_FILEPATH to upload files to the target. Conversely, we can use download REMOTE_FILEPATH LOCAL_FILEPATH to download files back from the target. These could come in handy if we, say, wanted to upload a tool to the target, save the results from running it to a log file, then download the log file back to our attacking machine for storage. In both instances if we miss out the destination filepath (e.g. the remote filepath on upload, or the local filepath on download), the tool will be uploaded into our current working directory.
+
+For example:
+
+![image](https://user-images.githubusercontent.com/89842187/132065061-4efcfa05-c461-4295-8755-1bde03d13075.png)
+
+In this example we upload an example tool (nc.exe) to C:\Windows\Temp, we then create a new file (demo.txt) and download it to the current working directory. Note that in the real world using the C:\Windows\Temp directory is often a bad idea as it's flagged as a common location for hackers to upload tools. In this case we are using it to keep the box neat and tidy for other users.
+
+## Local Scripts:
+
+
+Uploading tools is all well and good, but if the tool happens to be a PowerShell script then there is another (even more convenient) method. If you check the help menu for evil-winrm, you will see an interesting -s option. This allows us to specify a local directory containing PowerShell scripts -- these scripts will be made accessible for us to import directly into memory using our evil-winrm session (meaning they don't need to touch the disk at all). For example, if we happened to have our scripts located at /opt/scripts, we could include them in the connection with:
+```
+evil-winrm -u USERNAME  -p PASSWORD -i IP -s /opt/scripts
+
+```
+
+Let's use this option to include the Empire Portscan module.
+
+The Empire scripts are stored at /usr/share/powershell-empire/empire/server/data/module_source/situational_awareness/network/ if you installed using apt as recommended. A copy of this tool is also included in the zipfile attached to Task 1, or can be downloaded here, if you can't find it locally.
+
+Regardless, we can now sign in as the Administrator using the password hash discovered previously, including the Empire network scanning scripts:
+evil-winrm -u Administrator -H HASH -i IP -s EMPIRE_DIR
+
+Type Invoke-Portscan.ps1 and press enter to initialise the script.
+
+![image](https://user-images.githubusercontent.com/89842187/132065101-1d95ad9f-a785-4ce3-899e-e8490b0b2809.png)
+
+
+The Empire Portscan module is designed to be similar to Nmap in terms of syntax. You are encouraged to read through the full help menu for the tool; however, we only need two switches: -Hosts and -TopPorts. We could use the -Ports switch and just scan a range of ports, but for the sake of speed we can use the -TopPorts switch to scan a user-specified number of the most commonly open ports. For example, -TopPorts 50 would scan the 50 most commonly open ports.
+
+The full command would then look like this (using the top 50 ports and our example of 172.16.0.10):
+```
+Invoke-Portscan -Hosts 172.16.0.10 -TopPorts 50
+```
+
+## Pivoting
+
+We found two ports open in the previous task. RDP won't be of much use to us without credentials (or at least a hash, although Pass-the-Hash attacks are often restricted through RDP anyway); however, the webserver is worth looking into. Wreath told us that he worked on his website using a local environment on his own PC, so this bleeding-edge version may contain some vulnerabilities that we could use to exploit the target. Before we can do that, however, we must figure out how to access the development webserver on Wreath's PC from our attacking machine.
+
+We have two immediate options for this: Chisel, and Plink.
+
+Answer the questions below
+If you followed the recommended route of using sshuttle to pivot from the webserver then a chisel forward proxy is recommended here as it will be relatively easy to connect to through the sshuttle connection without requiring a relay -- look back at the Chisel task if you need help with this!
+
+When using this option you will need to open up a port in the Windows firewall to allow the forward connection to be made. The syntax for opening a port using netsh looks something like this:
+netsh advfirewall firewall add rule name="NAME" dir=in action=allow protocol=tcp localport=PORT
+
+Please use the name-USERNAME naming convention -- for example:
+```
+netsh advfirewall firewall add rule name="Chisel-MuirlandOracle" dir=in action=allow protocol=tcp localport=47000
+```
+Demonstration of the above firewall rule through WinRM
+
+![image](https://user-images.githubusercontent.com/89842187/132066283-68ab3508-967e-4d53-8133-edbc21b672ab.png)
