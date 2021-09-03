@@ -1386,3 +1386,190 @@ To interact with an agent in Starkiller we can either click on its name, or clic
 This results in a menu which gives us access to a variety of amazing features, including the ability to execute modules (more on these soon), execute commands in an interactive shell, browse the file system, and much more. Be sure to play around with this before moving on!
 
 To delete agents in Starkiller we can use either the trashcan icon in the pop-out agent Window, or the kill button in the action menu for the agent back in the Agents tab of Starkiller.
+
+## Empire: Hop Listeners
+
+As mentioned previously, Empire agents can't be proxied with a socat relay or any equivalent redirects; but there must be a way to get an agent back from a target with no outbound access, right?
+
+The answer is yes. We use something called a Hop Listener.
+
+Hop Listeners create what looks like a regular listener in our list of listeners (like the http listener we used before); however, rather than opening a port to receive a connection, hop listeners create files to be copied across to the compromised "jump" server and served from there. These files contain instructions to connect back to a normal (usually HTTP) listener on our attacking machine. As such, the hop listener in the listeners menu can be thought of as more of a placeholder -- a reference to be used when generating stagers.
+
+If this doesn't make much sense just now, don't worry! Hopefully it will once we have worked through an example.
+
+The hop listener we will be working with is the most common kind: the http_hop listener.
+
+When created, this will create a set of .php files which must be uploaded to the jumpserver (our compromised webserver) and served by a HTTP server. Under normal circumstances this would be a trivial task as the compromised server already has a webserver running; however, out of courtesy to anyone else attempting the network, we will not be using the installed webserver.
+Let's first look at starting the listener in Empire CLI.
+
+Switch into the context of the listener using uselistener http_hop from the main Empire menu (you may need to use back a few times to get out of any agents, etc). There are a few options we're interested in here:
+
+![image](https://user-images.githubusercontent.com/89842187/132040185-e1ef6837-a57b-4599-a086-cb53a82957f2.png)
+
+
+Specifically we need
+
+- A RedirectListener -- this is a regular listener to forward any received agents to. Think of the hop listener as being something like a relay on the compromised server; we still need to catch it with something! You could use the listener you set up earlier for this, or create an entirely new HTTP listener using the same steps we used earlier. Make sure that this matches up with the name of an already active listener though!
+- A Host -- the IP of the compromised webserver (.200).
+- A Port -- this is the port which will be used for the webserver hosting our hop files. Pick a random port here (above 15000), but remember it!
+
+When filled in, our options should look something like this:
+
+![image](https://user-images.githubusercontent.com/89842187/132040218-a10e31e9-c7a8-46b8-b153-7ad2c1743bdd.png)
+
+
+As shown in the screenshot, we then once again use execute to start the listener.
+
+This will have written a variety of files into a new http_hop directory in /tmp of our attacking machine. We will need to replicate this file structure on our jump server (the compromised .200 webserver) when we serve the files. Notice that these files (news.php, admin/get.php, and login/process.php) would not look out of place amongst genuine web application files -- and indeed could easily be discretely merged into an existing webapp.
+
+Let's look at setting up a http_hop listener in Starkiller.
+
+By this stage you should be fairly familiar with this process, so we will go through this quickly.
+
+Switch back to the Listeners menu in Starkiller using the menu at the left-hand side of the screen:
+
+![image](https://user-images.githubusercontent.com/89842187/132040268-63778b58-793b-456f-a83a-5624bb1406e8.png)
+
+
+Create a new listener and choose "http_hop" for the type. We then fill in the options much like with the Empire CLI Client:
+
+![image](https://user-images.githubusercontent.com/89842187/132040285-7bf1f646-4c64-433f-adfc-e089262f453a.png)
+
+Again, we set the Host (.200), Port, and RedirectListener.
+
+Note: if you also have a Hop Listener set up using the Empire CLI then you should also change the OutFolder to avoid overwriting the previously generated files.
+
+Click "Submit", and the listener starts!
+
+
+## Git Server
+
+Time to put this all into practice!
+
+You should already have a http_hop listener started in either Empire or Starkiller from the last task. If you don't, take this opportunity to start one before continuing.
+
+With the listener started there are two things we must do before we can get an agent back from the Git Server:-
+
+We must generate an appropriate stager for the target
+We must put the http_hop files into position on .200, and start a webserver to serve the files on the port we selected during the listener creation. This server must be able to execute PHP, so a PHP Debug server is ideal
+
+Let's start with generating a stager. For this we will use the multi/launcher stager. We already covered how to create stagers back in task 26, so you should be able to do this relatively unguided. The only option needing to be set here is the "Listener" option, which needs set to the name of the http_hop listener we created in the previous task:
+
+
+![image](https://user-images.githubusercontent.com/89842187/132060261-77946c73-7318-494d-8beb-d7d6493321be.png)
+
+![image](https://user-images.githubusercontent.com/89842187/132060269-bfd1679d-d260-48ef-84c3-2d9e382a33af.png)
+
+If using the Empire CLI, you will be presented with a payload to copy and paste into the target's command line:
+
+
+![image](https://user-images.githubusercontent.com/89842187/132060289-4a016dfe-b7fb-437b-8437-5daf90494a86.png)
+
+If using Starkiller you can copy the payload to your clipboard by clicking on the copy button of the Actions menu for the stager in the main Stagers menu:
+
+
+![image](https://user-images.githubusercontent.com/89842187/132060294-bbc387e8-1caf-41cf-93f8-8948edfbee17.png)
+
+Whichever method you chose, save the provided command somewhere and do not execute it yet. We will need it once we have set up the hop files on the jumpserver.
+
+Now let's get that jumpserver set up!
+
+First of all, in the /tmp directory of the compromised webserver, create and enter a directory called hop-USERNAME. e.g.:
+
+![image](https://user-images.githubusercontent.com/89842187/132060306-ae645bfd-cf79-436e-94aa-e6d9996b7c54.png)
+
+Transfer the contents from the /tmp/http_hop (or whatever you called it) directory across to this directory on the target server. A good way to do this is by zipping up the contents of the directory (cd /tmp/http_hop && zip -r hop.zip *), then transferring the zipfile across using one of the methods previously shown. For example, doing this with a Python HTTP server:
+
+![image](https://user-images.githubusercontent.com/89842187/132060318-bc8ec229-dbf1-4c9a-81a1-e84943578810.png)
+
+We can then unzip the zipfile on the webserver (i.e. unzip hop.zip):
+
+![image](https://user-images.githubusercontent.com/89842187/132060335-3c39f66f-7660-48c8-a1f3-848dd6cc0f14.png)
+
+
+Note: the output of ls must match up with the screenshot -- i.e. there should be a news.php file in your current directory, with admin/ and login/ as subdirectories.
+
+We now need to actually serve the files on the port we chose when generating the http_hop listener (task 28). Fortunately we already know that this server has PHP installed as it serves as the backend to the main website. This means that we can use the PHP development webserver to serve our files! The syntax for this is as follows:
+```
+
+php -S 0.0.0.0:PORT &>/dev/null &
+```
+e.g:
+![image](https://user-images.githubusercontent.com/89842187/132060391-7ab04a1f-0064-427e-9ae4-9a027de8dc69.png)
+
+
+As shown in the screenshot, the webserver is now listening in the background on the chosen port 47000.
+
+Note: Remember to open up the port in the firewall if you haven't already!
+
+This is a handy trick for when we need to serve PHP files, as our standard Python HTTP webserver is not capable of interpreting the PHP language and so cannot execute the scripts.
+
+We now have everything we need to get this show on the road!
+
+Note that the IP here is still .200. This is due to the jumpserver in between our target (the Git server) and our Empire client acting as a proxy in and out of the network.
+
+Bearing this in mind, get an agent back from the Git Server!
+
+## Empire: Modules
+
+As mentioned previously, modules are used to perform various tasks on a compromised target, through an active Empire agent. For example, we could use Mimikatz through its Empire module to dump various secrets from the target.
+
+As per usual, let's look at loading modules in both Empire CLI and Starkiller.
+
+Starting with Empire CLI:
+
+Inside the context of an agent, type usemodule. As expected, this will show a dropdown with a huge list of modules which can be loaded into the agent for execution.
+
+It doesn't really matter here as we already have full access to the target, but for the sake of learning, let's try loading in the Sherlock Empire module. This checks for potential privilege escalation vectors on the target.
+
+```
+usemodule powershell/privesc/sherlock
+
+```
+![image](https://user-images.githubusercontent.com/89842187/132060512-5729e163-e204-4310-bee0-da038f8f613c.png)
+
+As previously, we can use options to get information about the module after loading it in.
+
+This module requires one option to be set: the Agent value. This is already set for us here; however, if it was incorrect or there was no option set already then we could set it using the command: set Agent AGENT_NAME, (the same syntax as in previous parts of the framework).
+
+We start the module using the usual execute command. The module will then run as a background job, returning the results when it completes.
+
+![image](https://user-images.githubusercontent.com/89842187/132060522-c508f4fb-b53f-4462-9469-4ac06d0e3a9f.png)
+
+If we know approximately what we want to do, but don't know the exact path to a module, we can just type usemodule NAME_OF_MODULE and it should come up in the dropdown menu:
+
+![image](https://user-images.githubusercontent.com/89842187/132060540-d57d783e-ffc4-4d7b-86e6-56e74a048fcc.png)
+
+Now let's do the same thing in Starkiller.
+
+First we switch over to the modules menu:
+
+![image](https://user-images.githubusercontent.com/89842187/132060556-f3723602-5333-4c64-98b8-6cfbf7f838f7.png)
+
+In the top right corner we can search for our desired module. Let's search for the Sherlock module again:
+
+
+![image](https://user-images.githubusercontent.com/89842187/132060567-f5babc4a-7223-4507-b153-dc10816045b5.png)
+
+
+Select the module by clicking on its name.
+
+From here we click on the Agents menu, then select the agent(s) to use the module through:
+
+![image](https://user-images.githubusercontent.com/89842187/132060579-f23a3b26-2dc4-4c76-8627-4ff227c71588.png)
+
+Click Submit to run the module!
+
+To view the results we need to switch over to the "Reporting" section of the main menu on the left side of the window:
+
+![image](https://user-images.githubusercontent.com/89842187/132060594-4697dead-4e05-4d99-a4cf-e3d3464cac75.png)
+
+From here we can see the task we just ran, showing the Agent in use, the event type, command, user, and a timestamp.
+
+![image](https://user-images.githubusercontent.com/89842187/132060605-bf3e987f-5eae-41ae-9c55-dec50c1e215c.png)
+
+
+Clicking on the dropdown arrow to the left of the task gives the task results:
+
+![image](https://user-images.githubusercontent.com/89842187/132060624-056e9734-381b-4aad-a6aa-2a6c78b9f3fa.png)
+
