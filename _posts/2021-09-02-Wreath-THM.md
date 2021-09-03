@@ -1127,3 +1127,262 @@ lsadump::sam
 Near the top of the results you will see the Administrator's NTLM hash:
 
 ![image](https://user-images.githubusercontent.com/89842187/132026598-605ba75a-5457-450f-90d4-95c996c1bfb4.png)
+
+
+## Command and Control Introduction
+
+Note: If you are using the AttackBox then you are advised to skip to Task 32. The way that Empire is installed in the AttackBox is not representative of the recommended method -- a necessary design choice which was made to accommodate other software running on the machine. If you are comfortable working with Docker (and changing the instructions in the following tasks to accommodate accordingly) then feel free to read on. Otherwise please skip to the next section.
+
+So, we have a stable shell. What now?
+
+With a foothold in a target network, we can start looking to bring what is known as a C2 (Command and Control) Framework into play. C2 Frameworks are used to consolidate an attacker's position within a network and simplify post-exploitation steps (privesc, AV evasion, pivoting, looting, covert network tactics, etc), as well as providing red teams with extensive collaboration features. There are many C2 Frameworks available. The most famous (and expensive) is likely Cobalt Strike https://www.cobaltstrike.com/; however, there are many others, including the .NET based Covenant https://github.com/cobbr/Covenant, Merlin https://github.com/Ne0nd0g/merlin, Shadow https://github.com/bats3c/shad0w , https://github.com/nettitude/PoshC2, and many others. An excellent resource for finding (and filtering) C2 frameworks is The C2 Matrix https://www.thec2matrix.com/, which provides a great list of the pros and cons of a huge number of frameworks.
+
+We have a system shell on a Windows host, making this an ideal time to introduce the second of our three teaching topics: the C2 Framework "Empire".
+
+Powershell Empire is, as the name suggests, a framework built primarily to attack Windows targets (although especially with the advent of dotnet core, more and more of the functionality may become usable in other systems). It provides a wide range of modules to take initial access to a network of devices, and turn it into something much bigger. In this section we will be looking at the principles of PS Empire, as well as how to use it (and its GUI interface: Starkiller) to improve our shell and perform post-exploitation techniques on the Git Server.
+
+The Empire project was originally abandoned in early 2019; however, it was soon picked up by a company called BC-Security, who have maintained and improved it ever since. As such, there are actually two public versions of Empire -- the original (now very outdated), and the current BC-Security fork. Be careful to get the right one!
+
+Note: this material was originally written for Empire 3.x, but has been updated in response to the release of Empire 4.x which has a very different way of operating. Make sure to use Empire 4.x if following along with these materials.
+
+We will be looking into both Empire and its GUI extension: "Starkiller". Empire is the original CLI based framework but has now been split into a server mode and a client mode. Starkiller is a more recent addition to the toolbox, and can be used instead of (or as well as) the Empire client CLI program.
+
+
+## Empire: Installation
+
+Starkiller and Empire (via Docker) are both already installed on the TryHackMe AttackBox, so if you are not using your own machine then you can skip this task.
+
+That said, if we are using our own VM then we need to install both Empire and Starkiller before we use them. Ultimately it's up to you which you use; both will be covered in the tasks. Regardless, we need to install at least Empire.
+
+In ages past this was a much more complicated process involving the Git repo and setup scripts. These days it's easiest to just use the apt repositories:
+
+```
+sudo apt install powershell-empire starkiller
+
+
+```
+
+With both installed, we now need to start an Empire server. This should stay running in the background whenever we want to use either the Empire Client or Starkiller:
+
+```
+sudo powershell-empire server
+
+
+```
+
+The server should now start:
+
+![image](https://user-images.githubusercontent.com/89842187/132028089-33d2c960-0de1-4e58-8b82-ced3202f2a9b.png)
+
+It would be more common to have an Empire server running on a separate C2 server (usually hosted locally with cloud infrastructure linking back to receive inbound connections through). Multiple pentesters or red teamers would then be able to connect to a single central server.
+
+This is entirely overkill for our uses here -- instead we will just run both the server and the client application(s) on the single Kali instance.
+
+With the server started, let's get the Empire CLI Client working. You are welcome to skip this if you would prefer to work exclusively in Starkiller.
+
+Starting the Empire CLI Client is as easy as:
+
+```
+powershell-empire client
+
+```
+![image](https://user-images.githubusercontent.com/89842187/132028135-36413e05-72a5-4586-a48a-72a1ef91f81b.png)
+
+With the server instance hosted locally this should connect automatically by default. If the Empire server was on a different machine then you would need to either change the connection information in the /usr/share/powershell-empire/empire/client/config.yaml file, or connect manually from the Empire CLI Client using connect HOSTNAME --username=USERNAME --password=PASSWORD.
+
+Starkiller is an Electron app which works by connecting to the REST API exposed by the Empire server
+With an Empire server running, we can start Starkiller by executing "starkiller" in a new terminal window:
+
+![image](https://user-images.githubusercontent.com/89842187/132028164-2949c97f-635f-4a1e-a0e4-8c98c6385f51.png)
+
+From here we need to sign into the REST API we deployed previously. By default this runs on https://localhost:1337, with a username of empireadmin and a password of password123
+
+![image](https://user-images.githubusercontent.com/89842187/132028183-7e91ec80-9796-48ef-b137-3db74afd37af.png)
+
+## Empire: Overview
+
+
+Powershell Empire has several major sections to it, which we will be covering in the upcoming tasks.
+
+Listeners are fairly self-explanatory. They listen for a connection and facilitate further exploitation
+Stagers are essentially payloads generated by Empire to create a robust reverse shell in conjunction with a listener. They are the delivery mechanism for agents
+Agents are the equivalent of a Metasploit "Session". They are connections to compromised targets, and allow an attacker to further interact with the system
+Modules are used to in conjunction with agents to perform further exploitation. For example, they can work through an existing agent to dump the password hashes from the server
+Empire also allows us to add in custom plugins which extend the functionality of the framework in various ways; however, we will not be covering this in the upcoming content.
+
+In addition to these practical applications of the framework, it also has a nifty credential storage facility, automatically storing any found creds in a local database, plus many other neat features! Many of these extra features (such as the messaging functionality) are tailored for teams attacking a target; we will not be covering these collaborative features in much detail, but you are encouraged to look at them for yourself!
+
+There is a problem though. As established previously, our target (the Git Server) does not have the ability to connect directly to our attacking machine. Due to how Empire handles pivoting, we will need to set up a special kind of listener, so before we do that, we will learn the "normal" process for setting up Empire and Starkiller using the already compromised Webserver as a target. Once we have a handle on how Empire operates, we will switch focus to our primary target: the Git Server.
+
+In each of the following tasks, we will cover the relative section in both the Empire CLI and the Starkiller GUI. You are welcome to pick whichever one you prefer -- or follow along with both!
+
+Let's set up our first listener!
+
+## Empire: Listeners
+
+Listeners in Empire are used to receive connections from stagers (which we'll look at in the next task). The default listener is the HTTP listener. This is what we will be using here, although there are many others available. It's worth noting that a single listener can be used more than once -- they do not die after their first usage.
+
+Let's start by setting up a listener in the Empire CLI Client.
+
+Having started the client, we are met with the following menu:
+
+![image](https://user-images.githubusercontent.com/89842187/132029328-3a0dd474-7769-4cb0-9322-a93cf42911cf.png)
+
+To select a listener we would use the uselistener command. To see all available listeners, type uselistener  (making sure to include the space at the end!) -- this should bring up a dropdown menu of available listeners:
+
+
+![image](https://user-images.githubusercontent.com/89842187/132029356-53ef49e5-070d-4cac-ae3d-1a4a731f01f0.png)
+
+
+When you've picked a listener, type uselistener LISTENER and press enter to select it; alternatively, the up and down arrow keys can also be used to traverse the dropdown, with the chosen listener again being selected by pressing enter. Here we will be using the http listener (the most common kind), so we use uselistener http:
+
+![image](https://user-images.githubusercontent.com/89842187/132029385-35942f76-da7f-4023-88f5-f6f72bb02801.png)
+
+This brings up a huge table of options for the listener. If we need to see an updated copy of this table (having set options, for example), we can access it again with the options command when in the context of the listener.
+
+The syntax for setting options is identical to the Metasploit module options syntax -- set OPTION VALUE. Once again, a dropdown will appear showing us the available options after we type set .
+
+Set a new name for the listener. This allows us to easily identify it later -- especially if we have several open. It is not essential, however, and can be left at the default http if preferred.
+
+![image](https://user-images.githubusercontent.com/89842187/132029421-2647f650-9f7a-4d1b-8900-619cdde25959.png)
+
+Bear in mind that option names are case sensitive in Empire.
+
+Many of the other options presented here are extremely useful, so it's well worth learning what they do and how they can be applied.
+
+With the required options set, we can start the listener with: execute. We can then exit out of this menu using back, or exit to the main menu with main.
+
+To view our active listeners we can type listeners then press enter:
+![image](https://user-images.githubusercontent.com/89842187/132029435-92b3fe5b-2012-41ba-b5a1-da03de90b51f.png)
+
+When we want to stop a listener, we can use kill LISTENER_NAME to do so --  a dropdown menu with our active listeners will once again appear to assist.
+
+We have a listener in the Empire CLI; now let's do the same thing in Starkiller!
+
+When we first launched Starkiller, we were placed automatically in the Listeners menu:
+
+![image](https://user-images.githubusercontent.com/89842187/132029448-eafae84f-5162-4350-bdc9-f8477b6aaa0c.png)
+
+The process of creating a listener with the GUI is very intuitive. Click the "Create " button.
+
+In the menu that pops up, set the Type to http, the same as with the Empire Listener we created before. Several new options will appear:
+
+![image](https://user-images.githubusercontent.com/89842187/132029467-e3942cc8-196b-4580-8aef-be25ca6b03bb.png)
+
+Notice that these options are identical to those we saw earlier in the CLI version.
+
+Once again, set the Name, Host, and Port for the listener (make sure to use a different port from previously if you already have an Empire listener started!):
+
+![image](https://user-images.githubusercontent.com/89842187/132029488-286592dd-74a7-4412-985e-85f21a954dec.png)
+
+With the options set, click "Submit" at the top of the page, then go back to the Listeners menu by clicking on "Listeners" at the top left of the page. Back on the main Listeners page you will see your created listener!
+
+![image](https://user-images.githubusercontent.com/89842187/132029502-ab95f095-c565-427b-a57c-86e425e1db3c.png)
+
+Note: if you also have a listener set up in Empire, this will also show up here.
+
+
+## Empire: Stagers
+
+Stagers are Empire's payloads. They are used to connect back to waiting listeners, creating an agent when executed.
+
+We can generate stagers in either Empire CLI or Starkiller. In most cases these will be given as script files to be uploaded to the target and executed. Empire gives us a huge range of options for creating and obfuscating stagers for AV evasion; however, we will not be going into a lot of detail about these here.
+
+Let's first look at generating stagers in the Empire CLI application.
+
+From the main Empire prompt, type usestager  (including the space!)  to get a list of available stagers in a dropdown menu.
+
+There are a variety of options here. When in doubt, multi/launcher is often a good bet. In this case, let's go for multi/bash (usestager multi/bash):
+
+![image](https://user-images.githubusercontent.com/89842187/132032237-bd32f8d6-ac9f-4bfe-adc5-97e8eb07035b.png)
+
+
+As with listeners, we set options with set OPTION VALUE. There are many options here, but the only thing we need do is set the listener to the name of the listener we created in the previous task, then tell Empire to execute, creating the stager in our /tmp directory:
+
+![image](https://user-images.githubusercontent.com/89842187/132032254-f51c9680-5564-426d-a33c-15ecea9eec24.png)
+
+
+We now need to get the stager to the target and executed, but that is a job for later on. In the meantime we can save the stager into a file on our own attacking machine then once again exit out of the stager menu with back.
+
+Not unexpectedly, the process for generating stagers with Starkiller is almost identical.
+
+First we switch over to the Stagers menu on the left hand side of the interface:
+
+![image](https://user-images.githubusercontent.com/89842187/132032281-104af4df-95f0-45bc-b210-0c2c253251e5.png)
+
+
+From here we click "Create" and once again select multi/bash.
+
+We select the Listener we created in the previous task, then click submit, leaving the other options at their default values:
+
+![image](https://user-images.githubusercontent.com/89842187/132032298-326d8bfe-700f-47a1-8fd7-db9c92f0720c.png)
+
+
+This brings us back to the stagers main menu where we are given the option to copy the stager to the clipboard by clicking on the "Actions" dropdown and selecting "Copy to Clipboard":
+
+![image](https://user-images.githubusercontent.com/89842187/132032313-3a367e3f-04a9-4ee7-87c2-cd0b55a5befe.png)
+
+
+Once again we would now have to execute this on the target.
+
+
+## Empire: Agents
+
+
+Now that we've started a listener and created a stager, it's time to put them together to get an agent!
+
+We've been building up towards getting an agent on the compromised webserver, so let's do that now.
+
+The process for this is identical whether we are using Starkiller or Empire Client. We need to get the file to the target and executed.
+
+There are a variety of ways we could do this. The simplest would simply be to use your preferred CLI text editor to create a file on the target, copy and paste the script in, then execute it. If using this method, please do it in the /tmp directory and follow the FILENAME-USERNAME.sh naming convention. We could also use something called a here-document to execute the entire script without ever writing it to the disk.
+
+That said, this is overkill. If we read through the script we can see that it is in three main parts:
+
+That said, this is overkill. If we read through the script we can see that it is in three main parts:
+
+
+- In the green square we have the shebang. This tells the shell which interpreter to run the script under. In this case the script would be run using /bin/bash
+- The red square contains the payload itself. This is the section we're interested in
+- The blue square contains post processing commands. Specifically these two lines tell the script to delete itself then exit
+
+Knowing this, we can just copy everything in the red square then execute it in a terminal on the target:
+
+![image](https://user-images.githubusercontent.com/89842187/132038667-249863e4-34a2-42c2-a91a-539374f12f1f.png)
+
+This results in an agent being received by our waiting listener.
+
+In the Empire CLI receiving a listener looks something like this:
+
+![image](https://user-images.githubusercontent.com/89842187/132038679-69562274-0e50-4b6a-8c31-393187ceb257.png)
+
+We can then type agents and hit enter to see a full list of available agents:
+
+![image](https://user-images.githubusercontent.com/89842187/132038700-180bc68b-eef1-491a-8ce4-200ecdd15856.png)
+
+To interact with an agent, we use interact AGENT_NAME -- as per usual a dropdown with autocompletes will assist us here. This puts us into the context of the agent. We can view the full list of available commands with help:
+
+![image](https://user-images.githubusercontent.com/89842187/132038805-a5b333a7-f84a-41b0-a917-37e5104fe9df.png)
+
+Note that this menu will change depending on the stager we used.
+
+When we have finished with our agent we use back to switch context back to the agents menu. This doesn't destroy the agent, however. If we did want to kill our agent, we would do it with kill AGENT_NAME
+
+![image](https://user-images.githubusercontent.com/89842187/132038826-6de366de-ea9f-4051-aff0-b7ea03f1dba0.png)
+
+We can also rename agents using the command: rename AGENT_NAME NEW_AGENT_NAME.
+
+To interact with agents In Starkiller we go to the Agents tab on the left hand side of the screen:
+
+![image](https://user-images.githubusercontent.com/89842187/132038856-69707939-bdf5-480a-a02e-7eed0974f6f6.png)
+
+
+Here we will see that our agent has checked in!
+
+![image](https://user-images.githubusercontent.com/89842187/132038870-72d92c68-b907-4201-bd36-6d4e9c629e71.png)
+
+To interact with an agent in Starkiller we can either click on its name, or click on the "pop out" button in the actions menu.
+
+This results in a menu which gives us access to a variety of amazing features, including the ability to execute modules (more on these soon), execute commands in an interactive shell, browse the file system, and much more. Be sure to play around with this before moving on!
+
+To delete agents in Starkiller we can use either the trashcan icon in the pop-out agent Window, or the kill button in the action menu for the agent back in the Agents tab of Starkiller.
