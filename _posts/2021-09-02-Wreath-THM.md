@@ -1680,3 +1680,215 @@ netsh advfirewall firewall add rule name="Chisel-MuirlandOracle" dir=in action=a
 Demonstration of the above firewall rule through WinRM
 
 ![image](https://user-images.githubusercontent.com/89842187/132066283-68ab3508-967e-4d53-8133-edbc21b672ab.png)
+
+## The wonders of git
+
+It seems we guessed right! It appears to be a carbon copy of the website running on the webserver. If there are any differences here then they are clearly not going to be immediately visible, which means we may need to look at fuzzing this site through two proxies...
+
+Before we start messing around with fuzzing tools though, let's take a step back and think about this.
+
+We know from the brief that Thomas has been using git server to version control his projects -- just because the version on the webserver isn't up to date, doesn't mean that he hasn't been committing to the repo more regularly! In other words, rather than fuzzing the server, we might be able to just download the source code for the site and review it locally.
+
+Ideally we could just clone the repo directly from the server. This would likely require credentials, which we would need to find. Alternatively, given we already have local admin access to the git server, we could just download the repository from the hard disk and re-assemble it locally which does not require any (further) authentication.
+
+For the sake of practice, let's use this latter option.
+
+Use evil-winrm to download the entire directory.
+
+From the directory above Website.git, use:
+```
+download Website.git
+```
+
+Exit out of evil-winrm -- you should see that a new directory called Website.git has been created locally. If you enter into this directory you will see an oddly named subdirectory (the same as the answer to question 1 of this task).
+
+Rename this subdirectory to .git.
+
+Git repositories always contain a special directory called .git which contains all of the meta-information for the repository. This directory can be used to fully recreate a readable copy of the repository, including things like version control and branches. If the repository is local then this directory would be a part of the full repository -- the rest of which would be the items of the repository in a human-readable format; however, as the .git directory is enough to recreate the repository in its entirety, the server doesn't need to store the easily readable versions of the files. This means that what we've downloaded isn't actually the full repository, so much as the building blocks we can use to recreate the repo (which is exactly what happens when using git clone to create a local copy of a repo!).
+
+In order to extract the information from the repository, we use a suite of tools called GitTools.
+
+Clone the GitTools repository into your current directory using:
+
+```
+git clone https://github.com/internetwache/GitTools
+
+
+```
+
+The GitTools repository contains three tools:
+
+- Dumper can be used to download an exposed .git directory from a website should the owner of the site have forgotten to delete it
+- Extractor can be used to take a local .git directory and recreate the repository in a readable format. This is designed to work in conjunction with the Dumper, but will also work on the repo that we stole from the Git server. Unfortunately for us, whilst Extractor will give us each commit in a readable format, it will not sort the commits by date
+- Finder can be used to search the internet for sites with exposed .git directories. This is significantly less useful to an ethical hacker, although may have applications in bug bounty programmes
+
+Let's use Extractor to obtain a readable format of the repository!
+
+The syntax for Extractor is as follows:
+```
+./extractor.sh REPO_DIR DESTINATION_DIR
+```
+
+This is slightly confusing, so explaining each option:
+
+- The REPO_DIR is the directory containing the .git directory for the repository. Note that this is not the .git directory itself. Extractor looks for a .git directory inside the specified directory (which is why we had to change the original name of the directory to ".git")
+- The DESTINATION_DIR is the subdirectory into which the repository will be created
+
+For example, if we cloned the GitTools repo into the same directory as the .git directory we downloaded from the Git Server, we can extract the contents of the stolen repository into a subdirectory called "Website" using:
+
+```
+GitTools/Extractor/extractor.sh . Website
+
+
+```
+
+This uses the current directory "." (as the parent of the .git directory) and extracts into a newly created Website subdirectory.
+
+![image](https://user-images.githubusercontent.com/89842187/132073634-92e684c0-33c9-4383-817e-be8ef5ab03a5.png)
+
+Let's head into the newly recreated repository. We see three directories:
+
+![image](https://user-images.githubusercontent.com/89842187/132073643-0e960b73-40b8-4a65-bc51-bd677db9d03d.png)
+
+
+Each of these corresponds to a commit; however, as mentioned previously, these are not sorted by date...
+
+It's up to us to piece together the order of the commits. Fortunately there are only three commits in this repository, and each commit comes with a commit-meta.txt file which we can use to get an idea of the order.
+
+We could just cat each of these files out separately, but we may as well do it the fancy way with a bash one-liner:
+```
+separator="======================================="; for i in $(ls); do printf "\n\n$separator\n\033[4;1m$i\033[0m\n$(cat $i/commit-meta.txt)\n"; done; printf "\n\n$separator\n\n\n"
+```
+This gives us the three commit-meta.txt files in a nicely formatted order:
+
+![image](https://user-images.githubusercontent.com/89842187/132073656-c1a372a9-a786-4605-a10a-958fc7aa3f0b.png)
+
+Here we can see three commit messages: Updated the filter, Initial Commit for the back-end, and Static Website Commit.
+
+Note: The number at the start of these directories is arbitrary, and depends on the order in which GitTools extracts the directories. What matters is the hash at the end of the filename.
+
+Logically speaking, we can guess that these are currently in reverse orde based on the commit message; however, we could also check the parent value of each commit. Starting at the only commit without a parent (which must be the initial commit), we can work down the tree in stages like so:
+
+![image](https://user-images.githubusercontent.com/89842187/132073667-a31e8e74-e509-4620-9944-9f085ff32df2.png)
+
+We find the commit that has no parent (70dde80cc19ec76704567996738894828f4ee895), and check to see which of the other commits specifies it as a direct parent (82dfc97bec0d7582d485d9031c09abcb5c6b18f2). We then repeat the process to find the full commit order:
+
+- 70dde80cc19ec76704567996738894828f4ee895
+- 82dfc97bec0d7582d485d9031c09abcb5c6b18f2
+- 345ac8b236064b431fa43f53d91c98c4834ef8f3
+We could also do this by checking the timestamps attached to the commits (in UNIX format, after the emails); however, it is possible to fake these. Feel free to use them, but be aware that they may not always be accurate.
+
+
+## Website Code Analysis
+
+Head into the NUMBER-345ac8b236064b431fa43f53d91c98c4834ef8f3/ directory.
+
+The index.html file isn't promising -- realistically we need some PHP, which we identified as the webserver's back-end language in Task 31.
+
+Let's look for PHP files using find:
+```
+find . -name "*.php"
+```
+Only one result:
+
+![image](https://user-images.githubusercontent.com/89842187/132073720-dbca8a62-62b3-4db8-be24-b960a4401e10.png)
+
+If we're going to find a serious vulnerability, it's going to have to be here!
+
+
+Let's turn our attention to the code itself now.
+
+Reading through the PHP code, it appears that there are two filters in place here, plus a simple check to see if the file already exists.
+
+These filters are rolled together into one block of PHP code:
+
+```
+$size = getimagesize($_FILES["file"]["tmp_name"]);
+if(!in_array(explode(".", $_FILES["file"]["name"])[1], $goodExts) || !$size){
+    header("location: ./?msg=Fail");
+    die();
+}
+```
+The first line here uses a classic PHP technique used to see if a file is an image. In short, images have their dimensions encoded in their exif data. The getimagesize() method returns these dimensions if the file is genuinely an image, or the boolean value False if the file is not an image. This is more difficult to bypass than other filters, but it's far from impossible to do so.
+
+The second line is an If statement which checks two conditions. If either condition fails (indicated by the "Or" operator: ||) then the script will redirect with a Failure message. The second condition is easy: !$size just checks to see if the $size variable contains the boolean False. The first condition may need to be broken down a little.
+
+!in_array(explode(".", $_FILES["file"]["name"])[1], $goodExts)
+
+There are two functions in play here: in_array() and explode(). Let's start with the innermost function and work out the way:
+explode(".", $_FILES["file"]["name"])[1]
+
+The explode() function is used to split a string at the specified character. Here it's being used to split the name of the file we uploaded at each period (.). From this we can (rightly) assume that this is a file-extension filter. As an example, if we were to upload a file called image.jpeg, this function would return a list: ["image", "jpeg"]. As the filter only really needs the file-extension, it then grabs the second item from the list ([1]), remembering that lists start at 0.
+
+This, unfortunately, leads to a big problem. What happens if there's more than one file extension? Let's say we upload a file called image.jpeg.php. The filename gets split into ["image", "jpeg", "php"], but only the jpeg (as the second element in the list) gets passed into the filter!
+
+Looking at the outer function now (and replacing the inner function with a placeholder of EXPLODE_RESULTS):
+!in_array(EXPLODE_RESULTS, $goodExts)
+
+This checks to see if the result returned by the explode() method is not in an array called $goodExts. In other words, this is a whitelist approach where only certain extensions will be accepted. The accepted extension list can be found in line 5 of the file.
+
+
+## Exploit PoC
+
+Ok, so we know what is likely to happen when we access this page:
+
+-  It will probably ask us for creds
+- Well be able to upload image files
+- There are two filters in play to stop us from uploading other kinds of files
+- Both of these filters can be bypassed
+- Perfect -- let's access the page! 
+
+
+We can assume that the username here is probably either Thomas or twreath -- both of which we have already seen. We also already have one of Thomas' passwords, stolen from the Git Server using Mimikatz.
+
+We already know how to bypass the first filter -- simply changing the extension to .jpeg.php should be enough.
+
+The second filter is slightly harder, but doable.
+
+As the getimagesize() function is checking for attributes that only an image will have, we need to give it what it wants: an image.
+
+In other words, we need to upload a genuine image file which contains a PHP webshell somewhere. If this file has a .php file extension then it will be executed by the website as a PHP file, meaning all we need to do is force a webshell into the file and we're golden.
+
+The easiest place to stick the shell is in the exifdata for the image -- specifically in the Comment field to keep it nicely out of the way.
+
+Take a regular image (i.e. download a jpeg of your choice off the internet, keeping it safe for work) and rename it to test-USERNAME.jpeg.php, substituting in your own TryHackMe username.
+
+We can then use exiftool to check the exifdata of the file:
+
+```
+exiftool IMAGE_NAME
+```
+
+![image](https://user-images.githubusercontent.com/89842187/132073805-61370c32-3ae6-4167-9c32-75b9fe45dc44.png)
+
+Note: you may need to install exiftool before use (sudo apt install exiftool).
+
+Here we can see all of the exifdata for the image. Exiftool also allows us to edit this information, which makes it a great choice for the exploit we're going to carry out.
+
+Before we actually start inserting payloads into the image, however, there is one more thing to take into account. There is antivirus software running on this target. We don't know which AV Thomas uses, but we know that there will be protections enabled on this target. We don't know how strict the Antivirus software he uses is -- for all we know it will pick up any kind of default PHP webshell that we upload, alerting him to how close we are to compromising his host. It might not. but why take the chance? For this reason we will not be uploading a live payload in this task. Instead we will create a proof of concept here, then upload a live payload when we have completed the PHP Obfuscation task in the AV Evasion section of the network.
+
+Bearing this in mind, let's create our PoC!
+
+We'll be using the following PHP payload for this:
+<?php echo "<pre>Test Payload</pre>"; die();?>
+
+This is completely harmless and ergo should not get picked up by the AV. It does give us confirmation that this is likely to work, however, and stages the way for the actual webshell upload.
+
+To add this to our image we once again use exiftool:
+
+```
+exiftool -Comment="<?php echo \"<pre>Test Payload</pre>\"; die(); ?>" test-USERNAME.jpeg.php
+```
+
+![image](https://user-images.githubusercontent.com/89842187/132073819-453db6ae-2e71-4cd5-afda-40135b6021af.png)
+
+Now try uploading the file and accessing it in your browser!
+
+![image](https://user-images.githubusercontent.com/89842187/132073823-5d791dc5-c516-4892-b7f6-9a9ff588b492.png)
+
+Note: The HTML form is configured to only allow image uploads through the GUI, so don't be alarmed if you don't see your script in your working directory. Just change "All Supported Types" at the bottom right of the Window to "All Files":
+
+![image](https://user-images.githubusercontent.com/89842187/132073832-e90360be-4373-4b65-909f-5ff0d07b9eea.png)
+
+![image](https://user-images.githubusercontent.com/89842187/132073835-8061aa81-be19-404c-b827-15b4ee2e7403.png)
+
