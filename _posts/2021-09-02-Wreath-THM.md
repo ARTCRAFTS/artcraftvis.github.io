@@ -1,3 +1,19 @@
+---
+layout: single
+title: Wreath
+excerpt: Designed as a learning resource for beginners with a primary focus on Pivoting, working with the Empire C2 (Command and Control) framework, Simple Anti-Virus evasion techniques
+date: 2021-08-31
+classes: wide
+header:
+  teaser: /assets/images/security.jpg
+categories:
+  - Blue Team
+  - infosec
+tags:
+  - Blue Team
+  - Red Team
+---
+
 ## Wreath
 
 Designed as a learning resource for beginners with a primary focus on:
