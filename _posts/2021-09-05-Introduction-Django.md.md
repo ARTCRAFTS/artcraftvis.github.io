@@ -1,7 +1,7 @@
 ---
 layout: single
-title: Learning Python can be extremely useful for penetration testers, and a simple understanding of its frameworks can be a key to success.
-excerpt: "Microsoft Azure Sentinel es una solución de administración de eventos de información de seguridad (SIEM) y respuesta automatizada de orquestación de seguridad (SOAR) que es escalable y nativa de la nube. Azure Sentinel ofrece análisis de seguridad inteligente e inteligencia frente a amenazas en toda la empresa, de forma que proporciona una única solución para la detección de alertas, la visibilidad de amenazas, la búsqueda proactiva y la respuesta a amenazas."
+title: Introduction to Django
+excerpt: Learning Python can be extremely useful for penetration testers, and a simple understanding of its frameworks can be a key to success.
 date: 2021-08-31
 classes: wide
 header:
