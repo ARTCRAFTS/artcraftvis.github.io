@@ -176,7 +176,7 @@ Now, create some another blank HTML file (index.html) and include this code in i
 ![image](https://user-images.githubusercontent.com/89842187/132133843-51b5d2f8-1841-4b4a-a044-dd95a486814e.png)
 
 
-As seen here, it uses base.html as its basis and allows us to input any simple or slightly HTML-marked text in-between { extends 'base.html'%} and {% endblock %}. Try changing Hello World to some other text and now we are ready to make it work!
+As seen here, it uses base.html as its basis and allows us to input any simple or slightly HTML-marked text in-between { extends 'base.html'%} and {endblock}. Try changing Hello World to some other text and now we are ready to make it work!
 
 Remember what file is responsible for storing functions? views.py! 
 
