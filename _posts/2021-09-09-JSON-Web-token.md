@@ -87,3 +87,4 @@ In a similar manner, you can try to play and find other users on the website.
 
 This kind of misconfiguration in the authentication system is common and could be exploited to escalate privileges or steal information.
 
+
