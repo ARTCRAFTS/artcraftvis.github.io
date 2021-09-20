@@ -695,7 +695,260 @@ run scanner.provider.traversal -a package_name
 ## Exploiting Service
 
 
+```
+  run app.service.info -a package_name
 
+run app.service.start --action action --component package_name component_name
 
+run app.service.send package_name component_name --msg what arg1 arg2 --extra type key value --bundle-as-obj
+```
 
+## Inspeckage - Android Package Inspector
 
+My favorite tool, Inspeckage is a tool developed to offer dynamic analysis of Android applications. By applying hooks to functions of the Android API, Inspeckage will help you understand what an Android application is doing at runtime. Inspeckage will let you interact with some elements of the app, such as activities and providers (even unexported ones), and apply some settings on Android.
+
+Since dynamic analysis of Android applications (usually through hooks) is a core part of several mobile application security tests, the need of a tool that can help us do said tests is real. Even though there are other tools that promise to help you do that, I’ve run across some limitations when testing them:
+
+Lack of interaction with the user doing the tests;
+Only work in emulators;
+Plenty of time to update the tool after an Android update;
+Very poor output;
+Very costly setup.
+  
+## Android Package Inspector Features
+
+With Inspeckage, we can get a good amount of information about the application’s behavior:
+
+Information gathering
+
+Requested Permissions;
+App Permissions;
+Shared Libraries;
+Exported and Non-exported Activities, Content Providers,Broadcast Receivers and Services;
+Check if the app is debuggable or not;
+Version, UID and GIDs;
+etc.
+Hooks
+
+With the hooks, we can see what the application is doing in real time:
+
+Shared Preferences (log and file);
+Serialization;
+Crypto;
+Hashes;
+SQLite;
+HTTP (an HTTP proxy tool is still the best alternative);
+File System;
+Miscellaneous (Clipboard, URL.Parse());
+WebView;
+IPC.
+  
+  ## Insecure Data Storage
+  
+  We've totally interacted with our app now it's time to see the files created locally.
+
+Many developers assume that storing data on client-side will restrict other users from having access to this data. Interestingly, most of the top mobile application security breaches have been caused by insecure or unnecessary client-side data storage. File systems on devices are no longer a sandboxed environment and rooting or jailbreaking usually circumvents any protections.
+
+One needs to understand what different types of data are there and how are these stored insecurely.
+
+Data - Usernames, Authentication tokens or passwords, Cookies, Location data, Stored application logs or Debug information, Cached application messages or transaction history, UDID or EMEI, Personal Information (DoB, Address, Social, etc), Device Name, Network Connection Name, private API calls for high user roles, Credit Card Data or Account Data, etc.
+
+All apps (root or not) have a default data directory, which is /data/data/<package_name>. By default, the apps databases, settings, and all other data go here.
+
+  ```
+databases/: here go the app's databases
+lib/: libraries and helpers for the app
+files/: other related files
+shared_prefs/: preferences and settings
+cache/: well, caches
+```
+ For interact with device or emulator 
+  ```
+adb shell
+```
+  
+  Once you are able to access the SQLite database file on an emulator, rooted device or via adb shell / run as [package name], there are a few options to inspect the schema and your SQLite database on device.
+  
+  https://sqlitebrowser.org/dl/
+  
+  Pull the file from device first, then use a GUI software to look the schema and content. I use SQLite browser which allows you to see the database schema, table content, as well as executing some simple SQL scripts.
+```
+adb pull /data/data/package-name/databases/sqlitedatabse
+```
+Inspect SQLite db via sqlite3 command line tool
+
+For me the easier option is to use sqlite3 command line tool to inspect the database from adb shell.
+```
+cd data/data/package-name/databases/
+
+sqlite3 db-name
+
+.tables
+
+.schema table-name
+```
+  
+  ![image](https://user-images.githubusercontent.com/89842187/134076953-8d4e76bb-74c6-4929-8c15-38f7526805bd.png)
+  
+  ## Shared Preferences Files
+  
+  The SharedPreferences API is commonly used to permanently save small collections of key-value pairs. Data stored in a SharedPreferences object is written to a plain-text XML file. The SharedPreferences object can be declared world-readable (accessible to all apps) or private. Misuse of the SharedPreferences API can often lead to exposure of sensitive data. Consider the following example:
+
+  ```
+SharedPreferences sharedPref = getSharedPreferences("key", MODE_WORLD_READABLE);
+SharedPreferences.Editor editor = sharedPref.edit();
+editor.putString("username", "administrator");
+editor.putString("password", "supersecret");
+editor.commit();
+```
+  
+  Once the activity has been called, the file key.xml will be created with the provided data. This code violates several best practices.
+
+  ```
+  <?xml version='1.0' encoding='utf-8' standalone='yes' ?>
+<map>
+  <string name="username">administrator</string>
+  <string name="password">supersecret</string>
+</map>
+  
+
+  ```
+  
+  ![image](https://user-images.githubusercontent.com/89842187/134077053-b1b9f716-fb40-4340-96c5-8d5e02d8c85e.png)
+  
+  # Dynamic Analysis - Complications
+  
+  ## Root Detection in Android device:
+  
+  My explanation for this is:
+
+  ```
+if(device && emulator = rooted):
+
+    print "app going to the shit!"
+
+else:
+
+    print "app found"  
+```
+  
+So it is the best way to check in your application whether the device is rooted or not to avoid data theft but there’s no 100% way to check for root.
+
+Check for Test-Keys: Test-Keys has to do with how the kernel is signed when it is compiled. By default, stock Android ROMs from Google are built with release-keys tags. Test-Keys means it is signed with a custom key generated by a third-party developer. Specifically, it will check in build properties(“android.os.Build.TAGS”) for test-keys.
+
+  ```
+  private boolean detectTestKeys() {
+    String buildTags = android.os.Build.TAGS;
+    return buildTags != null && buildTags.contains("test-keys");
+}
+  ```
+  
+  Check for “su” binary: Su binary check is to identify the superuser in the device. This binary is installed when you try to root your phone using apps like kinguser or via fastboot in Android. These files are necessary so that one can root their phone and become the superuser. The existence of this binary can be checked from the following paths.
+
+  ```
+  private boolean checkForSuBinary() {
+    return checkForBinary("su"); // function is available below
+}
+  ```
+  Check for “busybox” binary: If a device has been rooted, more often than not Busybox has been installed as well. Busybox is a binary that provides many common Linux commands. Running busybox is a good indication that a device has been rooted.
+  
+  ```
+  private boolean checkForBusyBoxBinary() {
+   return checkForBinary("busybox");//function is available below
+}
+  ```
+  
+  Check for SuExists: different file system check for the su binary.
+  
+  ```
+  
+private boolean checkSuExists() {
+    Process process = null;
+    try {
+        process = Runtime.getRuntime().exec(new String[]
+                {"/system /xbin/which", "su"});
+        BufferedReader in = new BufferedReader(
+                new InputStreamReader(process.getInputStream()));
+        String line = in.readLine();
+        process.destroy();
+        return line != null;
+    } catch (Exception e) {
+        if (process != null) {
+            process.destroy();
+        }
+        return false;
+    }
+}
+  ```
+  
+  The following paths, Su and busybox binaries are often looked for on rooted devices.
+  
+  ```
+  
+  private String[] binaryPaths= {
+        "/data/local/",
+        "/data/local/bin/",
+        "/data/local/xbin/",
+        "/sbin/",
+        "/su/bin/",
+        "/system/bin/",
+        "/system/bin/.ext/",
+        "/system/bin/failsafe/",
+        "/system/sd/xbin/",
+        "/system/usr/we-need-root/",
+        "/system/xbin/",
+        "/system/app/Superuser.apk",
+        "/cache",
+        "/data",
+        "/dev"
+};
+  ```
+  
+  First you need to check the the pre-decompiled source code and check for functions that contains strings like “generic | emulator | google_sdk” and functions like “isEmulator | emulatorDetection…etc” … use your searching skills and read the code well
+![image](https://user-images.githubusercontent.com/89842187/134077511-3f43801f-e125-4269-99a3-64f790fe861d.png)
+  
+  ## SSL Pinning: 
+Is a technique that we use in the client side to avoid man-in-the-middle attack by validating the server certificates again even after SSL handshaking. The developers embed (or pin) a list of trustful certificates to the client application during development, and use them to compare against the server certificates during runtime. If there is a mismatch between the server and the local copy of certificates, the connection will simply be disrupted, and no further user data will be even sent to that server. This enforcement ensures that the user devices are communicating only to the dedicated trustful servers.
+  
+  ![image](https://user-images.githubusercontent.com/89842187/134077584-2eca6cf1-43b1-415d-9b53-652002514310.png)
+
+After you have taken in the illustration above, note that certificate pinning attempts to ensure that the client is not exchanging messages with any other server than the one they hold a public key for. Therefore, the client is not exposed to attacks where a rogue Certificate Authority (CA) validates the authenticity of a malicious host serving content with a sham certificate.
+  
+  ```
+  if(devices && emulators = CA_BURPSUITE):
+    print "not intercept comunications ):"
+else:
+    print "App found"
+  ```
+  
+  ## Bypass - Complications in Dynamic Analysis
+  
+  Hooking applications:
+
+Techniques used to alter the behaviour of applications. 
+
+Frida
+
+In short, it is a dynamic instrumentation framework, which enables function hooking and allows to provide a definition to it during runtime. Basically, it injects JavaScript code into a process. Suppose, there is a function called “foo” in a program with a specific body/implementation. Using “Frida”, one can change the body/implementation of the “foo” function during runtime. “Frida” supports a variety of platforms like Windows, macOS, GNU/Linux, iOS, Android, and QNX. More information on “Frida” can be found here.
+
+for install 
+
+pip install frida-tools
+
+Now check version and download the server, in my case is 12.6.8
+
+frida --version
+
+unzip file and push the server in the local system /data/local/tmp
+
+adb push /path/serverfrida /data/local/tmp
+
+Permissions
+
+adb shell chmod 777 /data/local/tmp/frida-server
+
+run frida server
+
+adb shell /data/local/tmp/frida-servername&
+
+now execute in your command line frida-ps -U
