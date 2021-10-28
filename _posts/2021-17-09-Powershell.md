@@ -257,6 +257,7 @@ https://book.hacktricks.xyz/windows/basic-powershell-for-pentesters/powerview
 
 
 
+![51187bc4e147d64807cf369e0fc623f5(1)](https://user-images.githubusercontent.com/89842187/139294400-caa6a8da-6e7a-4d64-89f5-ffe618b483dd.jpg)
 
 
 
