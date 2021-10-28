@@ -103,17 +103,17 @@ analytics:
 author:
   name             : "sl0wk3p"
   avatar           : "/assets/images/tenso.jpg"
-  bio              : "Chilling <script src="https://tryhackme.com/badge/67504"></script>"
+  bio              : "Chilling"
   location         : "Dublin"
   email            :  
-  uri              :
+  uri              : <script src="https://tryhackme.com/badge/67504"></script>
   home             : # null (default), "absolute or relative url to link to author home"
   bitbucket        :
   codepen          :
   dribbble         :
   flickr           :
   facebook         :
-  foursquare       :
+  foursquare       : 
   github           : "slowkep"
   gitlab           :
   google_plus      :
