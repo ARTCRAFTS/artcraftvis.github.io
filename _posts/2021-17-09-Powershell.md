@@ -256,7 +256,6 @@ Knowing which systems the current user can access with local administrator privi
 https://book.hacktricks.xyz/windows/basic-powershell-for-pentesters/powerview
 
 
-![tattoo-binarycode2](https://user-images.githubusercontent.com/89842187/139294870-bacf18e1-1636-4e8a-a87d-c9f538620319.jpg)
 
 
 
