@@ -16,9 +16,9 @@ minimal_mistakes_skin    : "haxor" # "air", "aqua", "contrast", "dark", "dirt", 
 
 # Site Settings
 locale                   : "en-US"
-title                    : "sl0wk3p.io"
+title                    : "artcraftvis.io"
 title_separator          : "-"
-name                     : "sl0wk3p"
+name                     : "artcraftvis"
 description              : "Posts about security, CTFs and networking"
 url                      : "https://snowscan.io" # the base hostname & protocol for your site e.g. "https://mmistakes.github.io"
 baseurl                  : # the subpath of your site, e.g. "/blog"
@@ -101,10 +101,10 @@ analytics:
 
 # Site Author
 author:
-  name             : "sl0wk3p"
+  name             : "artcraftvis"
   avatar           : "/assets/images/tenso.jpg"
-  bio              : "Chilling"
-  location         : "Dublin"
+  bio              : "Pinto cuadros, o cualquier superficie que se me ocurra interesante."
+  location         : "Madrid"
   email            :  
   uri              : 
   home             : # null (default), "absolute or relative url to link to author home"
@@ -114,11 +114,11 @@ author:
   flickr           :
   facebook         :
   foursquare       : 
-  github           : "slowkeep"
+  github           : 
   gitlab           :
   google_plus      :
   keybase          : 
-  instagram        :
+  instagram        : elartedegabriela
   lastfm           :
   linkedin         : # "john-doe-12345678" (the last part of your profile url, e.g. https://www.linkedin.com/in/john-doe-12345678)
   pinterest        :
